@@ -91,11 +91,13 @@ name = "frontier_explorer_hub"
 edition = "2024.beta"
 
 [dependencies]
-Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "mainnet-v1.40.1" }
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/testnet" }
 
 [addresses]
 frontier_explorer_hub = "0x0"
 ```
+
+> **SDK Version Note (2026-03-20):** Sui CLI 1.68.0, active env testnet. 使用 `framework/testnet` 追蹤 testnet 分支，避免固定過期版本。
 
 - [ ] **Step 2: Write admin.move — OTW, AdminCap, constants, error codes**
 
