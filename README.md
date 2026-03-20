@@ -1,5 +1,9 @@
 # 專案名稱：Frontier_Explorer_Hub (全宇宙情報星圖網路與 dApp 平台)
 
+> 📜 **[EVE Frontier 專案憲法與開發準則](https://github.com/Eve-Frontier-Changsha-2026/Constitution/blob/master/EVE_Frontier_Project_Constitution.md)**
+> 本專案的世界觀設定與底層相依資源，均遵從此憲法文檔之規範。
+
+
 ## 📌 概念簡介
 這是一個結合「情報販售、威脅雷達與外部 App Store」的聚合星圖平台（External App）。設計了一個情報聯盟，讓玩家在宇宙中探索與戰鬥時，透過 Smart Assembly 把觀測結果（礦帶、殘骸、防線、海盜）上報到鏈上。玩家與聯盟更能在此付費搜索情報資訊，建立宇宙間的「信息經濟」。
 
