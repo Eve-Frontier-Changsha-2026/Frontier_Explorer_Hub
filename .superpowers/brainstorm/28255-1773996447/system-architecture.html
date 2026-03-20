@@ -1,0 +1,109 @@
+<h2>Frontier Explorer Hub — System Architecture</h2>
+<p class="subtitle">Overall architecture with future dApp Store extensibility</p>
+
+<div style="background:#0d1117;border-radius:12px;padding:32px;font-family:'Courier New',monospace;font-size:13px;color:#c9d1d9;line-height:1.6;overflow-x:auto;">
+
+<!-- Title -->
+<div style="text-align:center;margin-bottom:24px;">
+<span style="color:#58a6ff;font-size:16px;font-weight:bold;">┌─────────────────────────────────────────────────────────────────┐</span><br>
+<span style="color:#58a6ff;font-size:16px;font-weight:bold;">│           FRONTIER EXPLORER HUB — SYSTEM OVERVIEW             │</span><br>
+<span style="color:#58a6ff;font-size:16px;font-weight:bold;">└─────────────────────────────────────────────────────────────────┘</span>
+</div>
+
+<!-- Layer 1: Client -->
+<div style="margin-bottom:8px;">
+<span style="color:#7ee787;">▸ CLIENT LAYER</span>
+</div>
+<div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px;margin-bottom:20px;">
+<div style="display:flex;gap:16px;flex-wrap:wrap;">
+  <div style="flex:1;min-width:180px;background:#1c2333;border:1px solid #388bfd44;border-radius:6px;padding:12px;text-align:center;">
+    <span style="color:#58a6ff;">🗺️ Star Map UI</span><br>
+    <span style="color:#8b949e;font-size:11px;">deck.gl + HeatmapLayer<br>Multi-zoom (System→Region→Frontier)<br>Filter overlays</span>
+  </div>
+  <div style="flex:1;min-width:180px;background:#1c2333;border:1px solid #388bfd44;border-radius:6px;padding:12px;text-align:center;">
+    <span style="color:#58a6ff;">💳 Subscription UI</span><br>
+    <span style="color:#8b949e;font-size:11px;">Tier selection & payment<br>Premium unlock flow<br>One-time intel purchase</span>
+  </div>
+  <div style="flex:1;min-width:180px;background:#1c2333;border:1px solid #388bfd44;border-radius:6px;padding:12px;text-align:center;">
+    <span style="color:#58a6ff;">📡 Intel Submit UI</span><br>
+    <span style="color:#8b949e;font-size:11px;">Explorer data upload<br>Bounty claim interface<br>Scan result formatter</span>
+  </div>
+  <div style="flex:1;min-width:180px;background:#1c2333;border:1px dashed #f0883e66;border-radius:6px;padding:12px;text-align:center;">
+    <span style="color:#f0883e;">🏪 dApp Store UI</span><br>
+    <span style="color:#8b949e;font-size:11px;">Future: 3rd-party tool listing<br>Developer portal<br>SDK docs</span>
+  </div>
+</div>
+</div>
+
+<!-- Arrow -->
+<div style="text-align:center;color:#484f58;margin:4px 0;">▼ Next.js + @mysten/dapp-kit + create-eve-dapp ▼</div>
+
+<!-- Layer 2: API / Indexer -->
+<div style="margin-bottom:8px;margin-top:16px;">
+<span style="color:#7ee787;">▸ SERVICE LAYER (Off-chain)</span>
+</div>
+<div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px;margin-bottom:20px;">
+<div style="display:flex;gap:16px;flex-wrap:wrap;">
+  <div style="flex:1;min-width:200px;background:#1c2333;border:1px solid #388bfd44;border-radius:6px;padding:12px;text-align:center;">
+    <span style="color:#58a6ff;">⚙️ Heatmap Aggregator</span><br>
+    <span style="color:#8b949e;font-size:11px;">Spatial Bucketing (grid cells)<br>K-anonymity threshold<br>Time-delay for Free tier<br><span style="color:#f0883e;font-style:italic;">Future: DP noise injection</span></span>
+  </div>
+  <div style="flex:1;min-width:200px;background:#1c2333;border:1px solid #388bfd44;border-radius:6px;padding:12px;text-align:center;">
+    <span style="color:#58a6ff;">🔍 Event Indexer</span><br>
+    <span style="color:#8b949e;font-size:11px;">Subscribe Sui events<br>Intel object tracking<br>Killmail / combat aggregation<br>Aggregation hash → on-chain anchor</span>
+  </div>
+  <div style="flex:1;min-width:200px;background:#1c2333;border:1px solid #388bfd44;border-radius:6px;padding:12px;text-align:center;">
+    <span style="color:#58a6ff;">🌐 Data API</span><br>
+    <span style="color:#8b949e;font-size:11px;">REST / GraphQL endpoints<br>Auth: verify on-chain subscription<br>Rate limiting per tier<br><span style="color:#f0883e;font-style:italic;">Future: dApp Store data SDK</span></span>
+  </div>
+</div>
+<div style="text-align:center;margin-top:12px;">
+  <span style="color:#484f58;">── Future: </span>
+  <span style="background:#2d1b00;border:1px dashed #f0883e66;border-radius:4px;padding:2px 8px;color:#f0883e;font-size:11px;">Walrus Blob Storage (historical snapshots, large datasets)</span>
+</div>
+</div>
+
+<!-- Arrow -->
+<div style="text-align:center;color:#484f58;margin:4px 0;">▼ Sui RPC + Event Subscription ▼</div>
+
+<!-- Layer 3: On-chain -->
+<div style="margin-bottom:8px;margin-top:16px;">
+<span style="color:#7ee787;">▸ ON-CHAIN LAYER (Sui Move)</span>
+</div>
+<div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px;">
+<div style="display:flex;gap:16px;flex-wrap:wrap;">
+  <div style="flex:1;min-width:180px;background:#1c2333;border:1px solid #3fb95044;border-radius:6px;padding:12px;text-align:center;">
+    <span style="color:#3fb950;">📦 intel module</span><br>
+    <span style="color:#8b949e;font-size:11px;">IntelReport object<br>visibility control<br>location + type + timestamp<br>submit / update / expire</span>
+  </div>
+  <div style="flex:1;min-width:180px;background:#1c2333;border:1px solid #3fb95044;border-radius:6px;padding:12px;text-align:center;">
+    <span style="color:#3fb950;">💎 subscription module</span><br>
+    <span style="color:#8b949e;font-size:11px;">SubscriptionNFT<br>tier (Free/Premium)<br>expiry timestamp<br>pay / renew / upgrade</span>
+  </div>
+  <div style="flex:1;min-width:180px;background:#1c2333;border:1px solid #3fb95044;border-radius:6px;padding:12px;text-align:center;">
+    <span style="color:#3fb950;">🔑 access module</span><br>
+    <span style="color:#8b949e;font-size:11px;">Tier-based data gating<br>One-time unlock receipts<br>Tribe/Alliance scope</span>
+  </div>
+  <div style="flex:1;min-width:180px;background:#1c2333;border:1px dashed #f0883e66;border-radius:6px;padding:12px;text-align:center;">
+    <span style="color:#f0883e;">🏪 marketplace module</span><br>
+    <span style="color:#8b949e;font-size:11px;">Future: dApp listing<br>Developer registration<br>Revenue split</span>
+  </div>
+</div>
+
+<!-- Bounty interface -->
+<div style="margin-top:16px;background:#1c2333;border:1px dashed #d2a8ff66;border-radius:6px;padding:12px;">
+  <div style="text-align:center;">
+    <span style="color:#d2a8ff;">🔗 Bounty Interface (→ Bounty_Escrow_Protocol)</span><br>
+    <span style="color:#8b949e;font-size:11px;">BountyRequest struct | IntelSubmission struct | verify_and_claim() | Mock module for Hackathon demo</span>
+  </div>
+</div>
+</div>
+
+<!-- Legend -->
+<div style="margin-top:24px;display:flex;gap:20px;flex-wrap:wrap;justify-content:center;">
+  <span><span style="color:#388bfd;">━━</span> <span style="color:#8b949e;font-size:11px;">Implemented (Hackathon)</span></span>
+  <span><span style="color:#f0883e;">╌╌</span> <span style="color:#8b949e;font-size:11px;">Future Extension</span></span>
+  <span><span style="color:#d2a8ff;">╌╌</span> <span style="color:#8b949e;font-size:11px;">Cross-project Interface</span></span>
+</div>
+
+</div>

@@ -1,0 +1,119 @@
+<h2>Data Flow — End-to-End Sequences</h2>
+<p class="subtitle">Three core flows: Intel Submission, Heatmap Consumption, Bounty Lifecycle</p>
+
+<div style="background:#0d1117;border-radius:12px;padding:32px;font-family:'Courier New',monospace;font-size:12px;color:#c9d1d9;line-height:1.7;overflow-x:auto;">
+
+<!-- Flow 1 -->
+<div style="margin-bottom:8px;">
+<span style="color:#7ee787;font-size:14px;font-weight:bold;">▸ FLOW 1: Intel Submission (探勘者提交情報)</span>
+</div>
+<div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:20px;margin-bottom:24px;">
+<div style="color:#8b949e;">
+<span style="color:#58a6ff;">Explorer</span> ──→ <span style="color:#d2a8ff;">/submit UI</span> ──→ <span style="color:#3fb950;">intel::submit_intel()</span> ──→ <span style="color:#f0883e;">emit IntelSubmittedEvent</span><br>
+<span style="color:#484f58;">　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　│</span><br>
+<span style="color:#484f58;">　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　▼</span><br>
+<span style="color:#484f58;">　　　　　　　　　　　　　　　　　　　　　</span><span style="color:#58a6ff;">Event Indexer</span> (WebSocket subscribe)<br>
+<span style="color:#484f58;">　　　　　　　　　　　　　　　　　　　　　│</span><br>
+<span style="color:#484f58;">　　　　　　　　　　　　　　　　　　　　　├─→ </span><span style="color:#58a6ff;">SQLite</span> intel_reports INSERT<br>
+<span style="color:#484f58;">　　　　　　　　　　　　　　　　　　　　　└─→ </span><span style="color:#58a6ff;">Heatmap Aggregator</span> incremental update<br>
+<span style="color:#484f58;">　　　　　　　　　　　　　　　　　　　　　　　　│</span><br>
+<span style="color:#484f58;">　　　　　　　　　　　　　　　　　　　　　　　　├─→ </span>Spatial bucket recalc<br>
+<span style="color:#484f58;">　　　　　　　　　　　　　　　　　　　　　　　　├─→ </span>K-anonymity check<br>
+<span style="color:#484f58;">　　　　　　　　　　　　　　　　　　　　　　　　└─→ </span>heatmap_cache UPDATE<br>
+</div>
+<div style="margin-top:12px;padding:8px 12px;background:#1c2333;border-radius:4px;">
+<span style="color:#7ee787;font-size:11px;">⏱ Latency: ~2-5s from submit to heatmap update (Premium) | +30min delay (Free)</span>
+</div>
+</div>
+
+<!-- Flow 2 -->
+<div style="margin-bottom:8px;">
+<span style="color:#7ee787;font-size:14px;font-weight:bold;">▸ FLOW 2: Heatmap Consumption (用戶查看熱力圖)</span>
+</div>
+<div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:20px;margin-bottom:24px;">
+<div style="color:#8b949e;">
+<span style="color:#58a6ff;">User</span> ──→ <span style="color:#d2a8ff;">/map UI</span> ──→ <span style="color:#58a6ff;">Data API</span> GET /api/heatmap/:zoom<br>
+<span style="color:#484f58;">　　　　　　　　　　　　　│</span><br>
+<span style="color:#484f58;">　　　　　　　　　　　　　├─→ </span>JWT verify (wallet signature)<br>
+<span style="color:#484f58;">　　　　　　　　　　　　　├─→ </span>Query on-chain: <span style="color:#3fb950;">subscription::is_active_premium()</span><br>
+<span style="color:#484f58;">　　　　　　　　　　　　　│</span><br>
+<span style="color:#484f58;">　　　　　　　　　　　　　▼</span><br>
+<span style="color:#484f58;">　　　　　　　 ┌────────────────────────┐</span><br>
+<span style="color:#484f58;">　　　　　　　 │</span>  <span style="color:#f0883e;">tier == Free?</span>           <span style="color:#484f58;">│</span><br>
+<span style="color:#484f58;">　　　　　　　 └───────┬────────┬───────┘</span><br>
+<span style="color:#484f58;">　　　　　　　　　 YES │　　　　│ NO</span><br>
+<span style="color:#484f58;">　　　　　　　　　　　 ▼　　　　▼</span><br>
+<span style="color:#484f58;">　　　　 </span><span style="color:#f0883e;">Delayed data (t-30min)</span>　<span style="color:#3fb950;">Real-time data</span><br>
+<span style="color:#484f58;">　　　　 </span><span style="color:#f0883e;">zoom 0-1 only</span>　　　　　<span style="color:#3fb950;">zoom 0-1-2</span><br>
+<span style="color:#484f58;">　　　　 </span><span style="color:#f0883e;">count only</span>　　　　　　　<span style="color:#3fb950;">type breakdown + severity</span><br>
+<span style="color:#484f58;">　　　　　　　　　│　　　　　　│</span><br>
+<span style="color:#484f58;">　　　　　　　　　└──────┬─────┘</span><br>
+<span style="color:#484f58;">　　　　　　　　　　　　 ▼</span><br>
+<span style="color:#484f58;">　　　　　　　 </span><span style="color:#d2a8ff;">deck.gl HeatmapLayer render</span><br>
+</div>
+<div style="margin-top:12px;display:flex;gap:12px;flex-wrap:wrap;">
+  <div style="flex:1;padding:8px 12px;background:#2d1b00;border:1px solid #f0883e44;border-radius:4px;">
+    <span style="color:#f0883e;font-size:11px;">FREE: 模糊熱力色塊，大區域，僅數量，延遲 30min</span>
+  </div>
+  <div style="flex:1;padding:8px 12px;background:#0d2818;border:1px solid #3fb95044;border-radius:4px;">
+    <span style="color:#3fb950;font-size:11px;">PREMIUM: 精確熱力 + 活動類型 + 嚴重度 + 即時 + 全 zoom</span>
+  </div>
+</div>
+</div>
+
+<!-- Flow 3 -->
+<div style="margin-bottom:8px;">
+<span style="color:#7ee787;font-size:14px;font-weight:bold;">▸ FLOW 3: Bounty Lifecycle (情報懸賞完整週期)</span>
+</div>
+<div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:20px;margin-bottom:24px;">
+<div style="color:#8b949e;">
+<span style="color:#58a6ff;">① Requester</span> ──→ <span style="color:#d2a8ff;">/bounties CreateBounty</span><br>
+<span style="color:#484f58;">　　│</span><br>
+<span style="color:#484f58;">　　└──→ </span><span style="color:#3fb950;">bounty::create_bounty(region, types, reward, deadline)</span><br>
+<span style="color:#484f58;">　　　　　│ SUI locked in escrow</span><br>
+<span style="color:#484f58;">　　　　　▼</span><br>
+<span style="color:#58a6ff;">② Explorer</span> sees bounty on board ──→ goes scouting<br>
+<span style="color:#484f58;">　　│</span><br>
+<span style="color:#484f58;">　　└──→ </span><span style="color:#3fb950;">intel::submit_intel()</span> with bounty_id reference<br>
+<span style="color:#484f58;">　　　　　│</span><br>
+<span style="color:#484f58;">　　　　　▼</span><br>
+<span style="color:#58a6ff;">③ Verification</span><br>
+<span style="color:#484f58;">　　├──→ </span>Check: intel_type ∈ bounty.types_wanted?<br>
+<span style="color:#484f58;">　　├──→ </span>Check: location ∈ bounty.target_region?<br>
+<span style="color:#484f58;">　　├──→ </span>Check: timestamp ≤ bounty.deadline?<br>
+<span style="color:#484f58;">　　│</span><br>
+<span style="color:#484f58;">　　▼</span><br>
+<span style="color:#58a6ff;">④ Settlement</span> ──→ <span style="color:#3fb950;">bounty::verify_and_release()</span><br>
+<span style="color:#484f58;">　　├──→ </span>escrow SUI → explorer<br>
+<span style="color:#484f58;">　　├──→ </span>bounty.status = completed<br>
+<span style="color:#484f58;">　　└──→ </span>intel flows into heatmap aggregation<br>
+</div>
+<div style="margin-top:12px;padding:8px 12px;background:#1c2333;border-radius:4px;">
+<span style="color:#d2a8ff;font-size:11px;">⚡ Hackathon: mock verification in Explorer Hub contract | Production: delegates to Bounty_Escrow_Protocol</span>
+</div>
+</div>
+
+<!-- Flow 4: Single Unlock -->
+<div style="margin-bottom:8px;">
+<span style="color:#7ee787;font-size:14px;font-weight:bold;">▸ FLOW 4: Single Intel Unlock (單次付費解鎖)</span>
+</div>
+<div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:20px;">
+<div style="color:#8b949e;">
+<span style="color:#58a6ff;">User</span> clicks locked intel on map ──→ <span style="color:#d2a8ff;">IntelPanel: UnlockButton</span><br>
+<span style="color:#484f58;">　　│</span><br>
+<span style="color:#484f58;">　　└──→ </span><span style="color:#3fb950;">access::unlock_intel(intel_id, payment)</span><br>
+<span style="color:#484f58;">　　　　　│</span><br>
+<span style="color:#484f58;">　　　　　├──→ </span>PricingTable lookup → deduct SUI<br>
+<span style="color:#484f58;">　　　　　├──→ </span>Mint UnlockReceipt NFT → user<br>
+<span style="color:#484f58;">　　　　　├──→ </span>Revenue split: reporter gets % <span style="color:#8b949e;">(incentivize submissions)</span><br>
+<span style="color:#484f58;">　　　　　└──→ </span>emit IntelUnlockedEvent<br>
+<span style="color:#484f58;">　　　　　　　　│</span><br>
+<span style="color:#484f58;">　　　　　　　　▼</span><br>
+<span style="color:#484f58;">　　　　　</span><span style="color:#d2a8ff;">UI re-fetches intel detail → shows full data</span><br>
+</div>
+<div style="margin-top:12px;padding:8px 12px;background:#1c2333;border-radius:4px;">
+<span style="color:#7ee787;font-size:11px;">💡 Revenue split creates a flywheel: more unlocks → reporters earn more → more submissions → richer heatmap → more subscribers</span>
+</div>
+</div>
+
+</div>

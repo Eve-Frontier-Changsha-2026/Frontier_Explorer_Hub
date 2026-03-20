@@ -1,0 +1,174 @@
+<h2>Frontend Architecture — Page & Component Map</h2>
+<p class="subtitle">Next.js App Router structure with deck.gl star map</p>
+
+<div style="background:#0d1117;border-radius:12px;padding:32px;font-family:'Courier New',monospace;font-size:13px;color:#c9d1d9;line-height:1.6;overflow-x:auto;">
+
+<!-- App Shell -->
+<div style="margin-bottom:8px;">
+<span style="color:#7ee787;">▸ APP SHELL (Layout)</span>
+</div>
+<div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px;margin-bottom:20px;">
+<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:center;">
+  <div style="background:#1c2333;border:1px solid #388bfd44;border-radius:6px;padding:8px 16px;">
+    <span style="color:#58a6ff;">WalletConnect</span><br>
+    <span style="color:#8b949e;font-size:10px;">@mysten/dapp-kit</span>
+  </div>
+  <div style="background:#1c2333;border:1px solid #388bfd44;border-radius:6px;padding:8px 16px;">
+    <span style="color:#58a6ff;">NavBar</span><br>
+    <span style="color:#8b949e;font-size:10px;">Map | Bounties | Subscribe | <span style="color:#f0883e;">Store</span></span>
+  </div>
+  <div style="background:#1c2333;border:1px solid #388bfd44;border-radius:6px;padding:8px 16px;">
+    <span style="color:#58a6ff;">TierBadge</span><br>
+    <span style="color:#8b949e;font-size:10px;">Free ◇ / Premium ◆</span>
+  </div>
+</div>
+</div>
+
+<!-- Pages -->
+<div style="margin-bottom:8px;">
+<span style="color:#7ee787;">▸ PAGES (App Router)</span>
+</div>
+
+<!-- Page 1: Star Map -->
+<div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px;margin-bottom:12px;">
+<span style="color:#58a6ff;font-weight:bold;">/map</span> <span style="color:#8b949e;">— Star Map + Heatmap (核心頁面)</span>
+<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;">
+  <div style="flex:1;min-width:200px;background:#1c2333;border-radius:6px;padding:12px;">
+    <span style="color:#d2a8ff;">StarMapCanvas</span><br>
+    <span style="color:#8b949e;font-size:11px;">
+      deck.gl DeckGL component<br>
+      ├─ HeatmapLayer (聚合熱力)<br>
+      ├─ ScatterplotLayer (標記點)<br>
+      ├─ PathLayer (航線/安全路徑)<br>
+      └─ TextLayer (星系名稱)
+    </span>
+  </div>
+  <div style="flex:1;min-width:160px;background:#1c2333;border-radius:6px;padding:12px;">
+    <span style="color:#d2a8ff;">MapControls</span><br>
+    <span style="color:#8b949e;font-size:11px;">
+      ZoomSelector (3 levels)<br>
+      FilterPanel<br>
+      ├─ intel type toggle<br>
+      ├─ time range slider<br>
+      └─ severity threshold<br>
+      LayerToggle (heat/markers)
+    </span>
+  </div>
+  <div style="flex:1;min-width:160px;background:#1c2333;border-radius:6px;padding:12px;">
+    <span style="color:#d2a8ff;">IntelPanel</span><br>
+    <span style="color:#8b949e;font-size:11px;">
+      RegionSummary card<br>
+      IntelDetail modal<br>
+      ├─ 🔒 locked (Free)<br>
+      └─ 🔓 unlocked (Premium/paid)<br>
+      UnlockButton (single pay)
+    </span>
+  </div>
+</div>
+</div>
+
+<!-- Page 2: Intel Submit -->
+<div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px;margin-bottom:12px;">
+<span style="color:#58a6ff;font-weight:bold;">/submit</span> <span style="color:#8b949e;">— 情報提交</span>
+<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;">
+  <div style="flex:1;min-width:200px;background:#1c2333;border-radius:6px;padding:12px;">
+    <span style="color:#d2a8ff;">SubmitForm</span><br>
+    <span style="color:#8b949e;font-size:11px;">
+      LocationPicker (map click)<br>
+      IntelTypeSelector<br>
+      SeveritySlider<br>
+      VisibilitySelector<br>
+      → calls submit_intel() tx
+    </span>
+  </div>
+  <div style="flex:1;min-width:200px;background:#1c2333;border-radius:6px;padding:12px;">
+    <span style="color:#d2a8ff;">MySubmissions</span><br>
+    <span style="color:#8b949e;font-size:11px;">
+      List of user's intel reports<br>
+      Status (active/expired)<br>
+      Earnings from unlocks
+    </span>
+  </div>
+</div>
+</div>
+
+<!-- Page 3: Bounties -->
+<div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px;margin-bottom:12px;">
+<span style="color:#58a6ff;font-weight:bold;">/bounties</span> <span style="color:#8b949e;">— 情報懸賞</span>
+<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;">
+  <div style="flex:1;min-width:200px;background:#1c2333;border-radius:6px;padding:12px;">
+    <span style="color:#d2a8ff;">BountyBoard</span><br>
+    <span style="color:#8b949e;font-size:11px;">
+      Active bounty list<br>
+      Filter by region/type/reward<br>
+      ClaimButton → submit intel
+    </span>
+  </div>
+  <div style="flex:1;min-width:200px;background:#1c2333;border-radius:6px;padding:12px;">
+    <span style="color:#d2a8ff;">CreateBounty</span><br>
+    <span style="color:#8b949e;font-size:11px;">
+      RegionPicker (map select)<br>
+      IntelType wanted<br>
+      Reward + deadline<br>
+      → calls create_bounty() tx
+    </span>
+  </div>
+</div>
+</div>
+
+<!-- Page 4: Subscribe -->
+<div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px;margin-bottom:12px;">
+<span style="color:#58a6ff;font-weight:bold;">/subscribe</span> <span style="color:#8b949e;">— 訂閱管理</span>
+<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;">
+  <div style="flex:1;min-width:200px;background:#1c2333;border-radius:6px;padding:12px;">
+    <span style="color:#d2a8ff;">TierComparison</span><br>
+    <span style="color:#8b949e;font-size:11px;">
+      Free vs Premium 功能對照表<br>
+      Pricing display<br>
+      SubscribeButton → pay tx
+    </span>
+  </div>
+  <div style="flex:1;min-width:200px;background:#1c2333;border-radius:6px;padding:12px;">
+    <span style="color:#d2a8ff;">MySubscription</span><br>
+    <span style="color:#8b949e;font-size:11px;">
+      Current tier & expiry<br>
+      Renew / Upgrade<br>
+      Unlock history
+    </span>
+  </div>
+</div>
+</div>
+
+<!-- Page 5: Future -->
+<div style="background:#161b22;border:1px dashed #f0883e66;border-radius:8px;padding:16px;">
+<span style="color:#f0883e;font-weight:bold;">/store</span> <span style="color:#8b949e;">— dApp Store (Future)</span>
+<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;">
+  <div style="flex:1;background:#1c2333;border:1px dashed #f0883e44;border-radius:6px;padding:12px;">
+    <span style="color:#f0883e;">PluginCatalog / PluginDetail / DeveloperPortal</span><br>
+    <span style="color:#8b949e;font-size:11px;">Third-party tool listing, install, and revenue dashboard</span>
+  </div>
+</div>
+</div>
+
+<!-- State Management -->
+<div style="margin-top:24px;margin-bottom:8px;">
+<span style="color:#7ee787;">▸ STATE MANAGEMENT</span>
+</div>
+<div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px;">
+<div style="display:flex;gap:16px;flex-wrap:wrap;">
+  <div style="flex:1;min-width:150px;background:#1c2333;border-radius:6px;padding:12px;text-align:center;">
+    <span style="color:#58a6ff;">Zustand</span><br>
+    <span style="color:#8b949e;font-size:11px;">Map viewport<br>Filter state<br>Selected region</span>
+  </div>
+  <div style="flex:1;min-width:150px;background:#1c2333;border-radius:6px;padding:12px;text-align:center;">
+    <span style="color:#58a6ff;">TanStack Query</span><br>
+    <span style="color:#8b949e;font-size:11px;">API data fetching<br>Cache & revalidation<br>Subscription polling</span>
+  </div>
+  <div style="flex:1;min-width:150px;background:#1c2333;border-radius:6px;padding:12px;text-align:center;">
+    <span style="color:#58a6ff;">@mysten/dapp-kit</span><br>
+    <span style="color:#8b949e;font-size:11px;">Wallet state<br>Transaction signing<br>On-chain queries</span>
+  </div>
+</div>
+</div>
+
+</div>

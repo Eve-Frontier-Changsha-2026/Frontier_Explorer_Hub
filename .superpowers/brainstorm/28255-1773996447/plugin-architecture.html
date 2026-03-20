@@ -1,0 +1,148 @@
+<h2>Plugin Platform Architecture — iframe Sandbox + SDK</h2>
+<p class="subtitle">How 3rd-party tools embed into Frontier Explorer Hub</p>
+
+<div style="background:#0d1117;border-radius:12px;padding:32px;font-family:'Courier New',monospace;font-size:12px;color:#c9d1d9;line-height:1.7;overflow-x:auto;">
+
+<!-- Plugin Lifecycle -->
+<div style="margin-bottom:8px;">
+<span style="color:#7ee787;font-size:14px;font-weight:bold;">▸ PLUGIN LIFECYCLE</span>
+</div>
+<div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:20px;margin-bottom:20px;">
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center;">
+  <div style="background:#1c2333;border:1px solid #388bfd44;border-radius:6px;padding:10px 14px;text-align:center;">
+    <span style="color:#58a6ff;">① Developer</span><br>
+    <span style="color:#8b949e;font-size:10px;">builds tool +<br>manifest.json</span>
+  </div>
+  <span style="color:#484f58;">→</span>
+  <div style="background:#1c2333;border:1px solid #3fb95044;border-radius:6px;padding:10px 14px;text-align:center;">
+    <span style="color:#3fb950;">② Register</span><br>
+    <span style="color:#8b949e;font-size:10px;">on-chain via<br>marketplace module</span>
+  </div>
+  <span style="color:#484f58;">→</span>
+  <div style="background:#1c2333;border:1px solid #388bfd44;border-radius:6px;padding:10px 14px;text-align:center;">
+    <span style="color:#58a6ff;">③ Listed</span><br>
+    <span style="color:#8b949e;font-size:10px;">in /store<br>catalog UI</span>
+  </div>
+  <span style="color:#484f58;">→</span>
+  <div style="background:#1c2333;border:1px solid #d2a8ff44;border-radius:6px;padding:10px 14px;text-align:center;">
+    <span style="color:#d2a8ff;">④ User Opens</span><br>
+    <span style="color:#8b949e;font-size:10px;">permission modal<br>→ iframe load</span>
+  </div>
+  <span style="color:#484f58;">→</span>
+  <div style="background:#1c2333;border:1px solid #f0883e44;border-radius:6px;padding:10px 14px;text-align:center;">
+    <span style="color:#f0883e;">⑤ Revenue</span><br>
+    <span style="color:#8b949e;font-size:10px;">per-use payment<br>split on-chain</span>
+  </div>
+</div>
+</div>
+
+<!-- Embedding Architecture -->
+<div style="margin-bottom:8px;">
+<span style="color:#7ee787;font-size:14px;font-weight:bold;">▸ EMBEDDING ARCHITECTURE</span>
+</div>
+<div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:20px;margin-bottom:20px;">
+
+<!-- Host App -->
+<div style="border:2px solid #388bfd;border-radius:8px;padding:16px;margin-bottom:0;">
+  <div style="color:#58a6ff;font-weight:bold;margin-bottom:12px;">Frontier Explorer Hub (Host)</div>
+
+  <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+    <div style="flex:1;min-width:100px;background:#1c2333;border-radius:4px;padding:8px;text-align:center;">
+      <span style="color:#8b949e;font-size:11px;">Star Map</span>
+    </div>
+    <div style="flex:1;min-width:100px;background:#1c2333;border-radius:4px;padding:8px;text-align:center;">
+      <span style="color:#8b949e;font-size:11px;">Bounties</span>
+    </div>
+    <div style="flex:1;min-width:100px;background:#1c2333;border-radius:4px;padding:8px;text-align:center;">
+      <span style="color:#8b949e;font-size:11px;">Subscribe</span>
+    </div>
+    <div style="flex:1;min-width:100px;background:#0d2818;border:1px solid #3fb95044;border-radius:4px;padding:8px;text-align:center;">
+      <span style="color:#3fb950;font-size:11px;">Plugin Store</span>
+    </div>
+  </div>
+
+  <!-- Plugin Bridge -->
+  <div style="background:#1c2333;border:1px solid #d2a8ff44;border-radius:6px;padding:12px;margin-bottom:12px;">
+    <span style="color:#d2a8ff;font-weight:bold;">Plugin Bridge</span>
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+      <span style="background:#2d1b3d;border-radius:4px;padding:4px 8px;font-size:10px;color:#d2a8ff;">Auth Proxy</span>
+      <span style="background:#2d1b3d;border-radius:4px;padding:4px 8px;font-size:10px;color:#d2a8ff;">Data API Proxy</span>
+      <span style="background:#2d1b3d;border-radius:4px;padding:4px 8px;font-size:10px;color:#d2a8ff;">Wallet Action Proxy</span>
+      <span style="background:#2d1b3d;border-radius:4px;padding:4px 8px;font-size:10px;color:#d2a8ff;">Permission Guard</span>
+    </div>
+  </div>
+
+  <!-- postMessage -->
+  <div style="text-align:center;color:#484f58;margin:8px 0;">▲ window.postMessage ▼</div>
+
+  <!-- iframe -->
+  <div style="border:2px dashed #f0883e;border-radius:8px;padding:16px;background:#1a1510;">
+    <div style="color:#f0883e;font-weight:bold;margin-bottom:8px;">
+      &lt;iframe sandbox&gt; — Isolated Plugin
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:150px;background:#261d10;border:1px solid #f0883e44;border-radius:4px;padding:10px;">
+        <span style="color:#f0883e;font-size:11px;">3rd-party Code</span><br>
+        <span style="color:#8b949e;font-size:10px;">Route analyzer, threat radar,<br>market scanner, fleet advisor...</span>
+      </div>
+      <div style="flex:1;min-width:150px;background:#261d10;border:1px solid #3fb95044;border-radius:4px;padding:10px;">
+        <span style="color:#3fb950;font-size:11px;">@explorer-hub/plugin-sdk</span><br>
+        <span style="color:#8b949e;font-size:10px;">hub.getHeatmap()<br>hub.getUser()<br>hub.requestTransaction()<br>hub.requestPayment()</span>
+      </div>
+    </div>
+    <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">
+      <span style="background:#2d1b00;border-radius:4px;padding:3px 6px;font-size:9px;color:#f0883e;">🔒 no allow-same-origin</span>
+      <span style="background:#2d1b00;border-radius:4px;padding:3px 6px;font-size:9px;color:#f0883e;">🔒 no top-navigation</span>
+      <span style="background:#2d1b00;border-radius:4px;padding:3px 6px;font-size:9px;color:#f0883e;">🔒 CSP: connect-src hub API only</span>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- Revenue Flow -->
+<div style="margin-bottom:8px;">
+<span style="color:#7ee787;font-size:14px;font-weight:bold;">▸ REVENUE FLOW</span>
+</div>
+<div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:20px;margin-bottom:20px;">
+<div style="color:#8b949e;">
+<span style="color:#58a6ff;">User</span> pays for plugin usage<br>
+<span style="color:#484f58;">　│</span><br>
+<span style="color:#484f58;">　└──→ </span><span style="color:#3fb950;">marketplace::use_plugin()</span><br>
+<span style="color:#484f58;">　　　　│ coin::split()</span><br>
+<span style="color:#484f58;">　　　　├──→ </span><span style="color:#f0883e;">Developer share (e.g. 80%)</span> → developer address<br>
+<span style="color:#484f58;">　　　　└──→ </span><span style="color:#d2a8ff;">Platform fee (e.g. 20%)</span> → SubscriptionConfig.treasury<br>
+<span style="color:#484f58;">　　　　　　　</span><span style="color:#8b949e;font-size:10px;">(same treasury as subscriptions + unlocks)</span>
+</div>
+</div>
+
+<!-- Future Upgrade -->
+<div style="margin-bottom:8px;">
+<span style="color:#7ee787;font-size:14px;font-weight:bold;">▸ FUTURE: MODULE FEDERATION (方案 B)</span>
+</div>
+<div style="background:#161b22;border:1px dashed #f0883e44;border-radius:8px;padding:16px;">
+<div style="display:flex;gap:16px;flex-wrap:wrap;">
+  <div style="flex:1;min-width:200px;">
+    <span style="color:#58a6ff;">Current: IframePluginLoader</span><br>
+    <span style="color:#8b949e;font-size:11px;">
+      ✅ Sandbox isolation<br>
+      ✅ No trust required<br>
+      ⚠️ Limited UX (no shared context)<br>
+      ⚠️ postMessage latency
+    </span>
+  </div>
+  <div style="flex:1;min-width:200px;">
+    <span style="color:#f0883e;">Future: FederatedPluginLoader</span><br>
+    <span style="color:#8b949e;font-size:11px;">
+      ✅ Shared React context<br>
+      ✅ Native UX integration<br>
+      ⚠️ Requires security audit<br>
+      ⚠️ Trust relationship needed
+    </span>
+  </div>
+</div>
+<div style="margin-top:12px;padding:8px;background:#1c2333;border-radius:4px;">
+  <span style="color:#7ee787;font-size:11px;">PluginLoader abstraction: swap implementation without changing plugin SDK API surface</span>
+</div>
+</div>
+
+</div>
