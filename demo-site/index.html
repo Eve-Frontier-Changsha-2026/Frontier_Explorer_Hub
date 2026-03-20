@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Frontier Explorer Hub | Eve Frontier Demo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Exo+2:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="bg-root" aria-hidden="true">
+      <canvas id="starfield"></canvas>
+      <div class="vignette"></div>
+      <div class="grid-overlay"></div>
+    </div>
+    <div class="warp-transition" id="warpTransition" aria-hidden="true"></div>
+    <div class="noise-transition" id="noiseTransition" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">EF</span>
+        <span class="brand-name">FRONTIER EXPLORER HUB</span>
+      </div>
+    </header>
+
+    <aside class="chapter-nav">
+      <a href="#hero" data-label="Awaken">01</a>
+      <a href="#intel" data-label="Observe">02</a>
+      <a href="#command" data-label="Command">03</a>
+      <a href="#finale" data-label="Enter">04</a>
+    </aside>
+
+    <main>
+      <section id="hero" class="chapter hero reveal">
+        <div class="hero-bg"></div>
+        <div class="hero-content">
+          <p class="eyebrow">EVE FRONTIER | OFFICIAL VISUAL EXPERIENCE</p>
+          <h1 class="type-title">Awake In The Ancient Dark</h1>
+          <p class="hero-subline">Turn intelligence into your first weapon.</p>
+          <p class="hero-copy">
+            Frontier Explorer Hub is a tactical intelligence core for EVE Frontier, connecting exploration, combat, and survival decisions through on-chain intel objects.
+          </p>
+        </div>
+      </section>
+
+      <section id="intel" class="chapter reveal">
+        <div class="section-head">
+          <p class="eyebrow">TACTICAL FRAMES</p>
+          <h2 class="type-title">Official Visual Intel Wall</h2>
+          <p>Each frame maps to an executable decision: resource discovery, risk warning, combat posture, and logistics routing.</p>
+        </div>
+        <div class="image-wall">
+          <article class="frame f1">
+            <div class="frame-overlay">
+              <h3>Resource Discovery</h3>
+              <p>High-value ore zone detection and validity window control.</p>
+            </div>
+          </article>
+          <article class="frame f2">
+            <div class="frame-overlay">
+              <h3>Threat Radar</h3>
+              <p>Hostile movement tracking and route-risk prediction.</p>
+            </div>
+          </article>
+          <article class="frame f3">
+            <div class="frame-overlay">
+              <h3>Fleet Doctrine</h3>
+              <p>Fit compliance verification and tactical composition board.</p>
+            </div>
+          </article>
+          <article class="frame f4">
+            <div class="frame-overlay">
+              <h3>War Memory</h3>
+              <p>Battle archive that compounds into alliance knowledge capital.</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="command" class="chapter reveal">
+        <div class="command-bg"></div>
+        <div class="command-content">
+          <p class="eyebrow">LIVE OPS CONSOLE</p>
+          <h2 class="type-title">90-Second Demo Route</h2>
+          <ol class="demo-flow">
+            <li>Open the hero scene and establish the tactical positioning.</li>
+            <li>Scroll into the intel wall and map visual events to actions.</li>
+            <li>Shift to command metrics: threat, throughput, and response speed.</li>
+            <li>Close with glowing CTA and platform-level expansion narrative.</li>
+          </ol>
+          <div class="metrics">
+            <article>
+              <h3>2.3M+</h3>
+              <p>On-chain Intel Objects</p>
+            </article>
+            <article>
+              <h3>380ms</h3>
+              <p>Avg Tactical Refresh</p>
+            </article>
+            <article>
+              <h3>98.7%</h3>
+              <p>Threat Alert Precision</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="finale" class="chapter finale reveal">
+        <div class="finale-art"></div>
+        <div class="finale-content">
+          <p class="eyebrow">ENTER THE FRONTIER</p>
+          <h2 class="type-title">Build Civilization. Survive Consequence.</h2>
+          <p id="ticker" class="ticker">Live feed synchronized across 12 active regions.</p>
+          <div class="hero-cta">
+            <a class="btn btn-primary" href="http://127.0.0.1:5173/" target="_blank" rel="noreferrer">Open Main Site</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
