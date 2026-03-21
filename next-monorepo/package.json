@@ -1,0 +1,8 @@
+{
+  "name": "frontier-explorer-hub",
+  "private": true,
+  "workspaces": ["app", "packages/*"],
+  "scripts": {
+    "test": "npm run -w app test && npm run -w @explorer-hub/plugin-sdk test"
+  }
+}
