@@ -2,3 +2,7 @@ tasks/progress.md
 tasks/lessons.md
 .superpowers/
 .worktrees/
+move/frontier_explorer_hub/build/
+services/node_modules/
+services/dist/
+services/*.db
