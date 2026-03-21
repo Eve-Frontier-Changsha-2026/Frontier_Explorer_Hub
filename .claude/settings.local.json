@@ -51,7 +51,8 @@
       "Bash(/usr/bin/curl -s -o /dev/null -w \"%{http_code}\" \"https://eve-eyes.d0v.xyz/api/tribes\" -H 'x-api-key: eve_ak_DMj-PCQK-d_oNgetgjICgb8PGxFhUvF6N7zHiOiV2cQ')",
       "Bash(/usr/bin/curl -s -o /dev/null -w \"%{http_code}\" \"https://eve-eyes.d0v.xyz/api/jumps\" -H 'x-api-key: eve_ak_DMj-PCQK-d_oNgetgjICgb8PGxFhUvF6N7zHiOiV2cQ')",
       "Bash(/usr/bin/curl -s -o /dev/null -w \"%{http_code}\" \"https://eve-eyes.d0v.xyz/api/systems\" -H 'x-api-key: eve_ak_DMj-PCQK-d_oNgetgjICgb8PGxFhUvF6N7zHiOiV2cQ')",
-      "Bash(/usr/bin/curl -s \"https://eve-eyes.d0v.xyz/api/codex\" -H 'x-api-key: eve_ak_DMj-PCQK-d_oNgetgjICgb8PGxFhUvF6N7zHiOiV2cQ')"
+      "Bash(/usr/bin/curl -s \"https://eve-eyes.d0v.xyz/api/codex\" -H 'x-api-key: eve_ak_DMj-PCQK-d_oNgetgjICgb8PGxFhUvF6N7zHiOiV2cQ')",
+      "Bash(grep -h \"^module \" /Users/ramonliao/Documents/Code/Project/Web3/Hackathon/2026_HoH_SUI_HackerHouse_Changsha/EVE_Frontier/build/projects/Frontier_Explorer_Hub/.worktrees/plan-a/move/frontier_explorer_hub/sources/*.move)"
     ]
   },
   "enabledPlugins": {
