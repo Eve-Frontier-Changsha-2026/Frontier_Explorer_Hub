@@ -69,15 +69,6 @@ module frontier_explorer_hub::admin {
     const MAX_BATCH_SIZE: u64 = 20;
 
     // ═══════════════════════════════════════════════
-    // Bounty status
-    // ═══════════════════════════════════════════════
-
-    const BOUNTY_OPEN: u8 = 0;
-    const BOUNTY_SUBMITTED: u8 = 1;
-    const BOUNTY_COMPLETED: u8 = 2;
-    const BOUNTY_EXPIRED: u8 = 3;
-
-    // ═══════════════════════════════════════════════
     // Error codes
     // ═══════════════════════════════════════════════
 
@@ -95,18 +86,10 @@ module frontier_explorer_hub::admin {
     const EShareBelowMinimum: u64 = 11;
     const EShareAboveMaximum: u64 = 12;
     const ESlippageExceeded: u64 = 13;
-    const EBountyNotOpen: u64 = 14;
-    const EBountyExpired: u64 = 15;
-    const EBountyNotExpired: u64 = 16;
-    const EBountyTypeMismatch: u64 = 17;
-    const EBountyRegionMismatch: u64 = 18;
     const EBatchTooLarge: u64 = 19;
     const ENotDeveloper: u64 = 20;
     const EPluginNotActive: u64 = 21;
     const EPluginNotFound: u64 = 22;
-    const EZeroReward: u64 = 23;
-    const EDeadlineInPast: u64 = 24;
-    const EBountyNotCompleted: u64 = 25;
 
     // ═══════════════════════════════════════════════
     // Public accessor functions — intel types
@@ -159,15 +142,6 @@ module frontier_explorer_hub::admin {
     public fun max_batch_size(): u64 { MAX_BATCH_SIZE }
 
     // ═══════════════════════════════════════════════
-    // Public accessor functions — bounty status
-    // ═══════════════════════════════════════════════
-
-    public fun bounty_open(): u8 { BOUNTY_OPEN }
-    public fun bounty_submitted(): u8 { BOUNTY_SUBMITTED }
-    public fun bounty_completed(): u8 { BOUNTY_COMPLETED }
-    public fun bounty_expired(): u8 { BOUNTY_EXPIRED }
-
-    // ═══════════════════════════════════════════════
     // Public accessor functions — error codes
     // ═══════════════════════════════════════════════
 
@@ -185,18 +159,10 @@ module frontier_explorer_hub::admin {
     public fun e_share_below_minimum(): u64 { EShareBelowMinimum }
     public fun e_share_above_maximum(): u64 { EShareAboveMaximum }
     public fun e_slippage_exceeded(): u64 { ESlippageExceeded }
-    public fun e_bounty_not_open(): u64 { EBountyNotOpen }
-    public fun e_bounty_expired(): u64 { EBountyExpired }
-    public fun e_bounty_not_expired(): u64 { EBountyNotExpired }
-    public fun e_bounty_type_mismatch(): u64 { EBountyTypeMismatch }
-    public fun e_bounty_region_mismatch(): u64 { EBountyRegionMismatch }
     public fun e_batch_too_large(): u64 { EBatchTooLarge }
     public fun e_not_developer(): u64 { ENotDeveloper }
     public fun e_plugin_not_active(): u64 { EPluginNotActive }
     public fun e_plugin_not_found(): u64 { EPluginNotFound }
-    public fun e_zero_reward(): u64 { EZeroReward }
-    public fun e_deadline_in_past(): u64 { EDeadlineInPast }
-    public fun e_bounty_not_completed(): u64 { EBountyNotCompleted }
 
     // ═══════════════════════════════════════════════
     // Validation helpers

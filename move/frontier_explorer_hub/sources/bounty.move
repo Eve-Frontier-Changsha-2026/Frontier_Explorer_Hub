@@ -1,230 +1,221 @@
+/// Thin wrapper over `bounty_escrow` — adds intel-specific metadata
+/// and verification logic (region/type matching, anti-frontrunning).
+///
+/// Only wraps operations with Explorer Hub domain logic:
+/// - create_intel_bounty: escrow creation + IntelBountyMeta
+/// - verify_and_approve: intel match validation + approval
+///
+/// For claim, reward, cancel, expire, abandon — call bounty_escrow
+/// entry functions directly (no domain logic needed).
 module frontier_explorer_hub::bounty {
+    use std::string::String;
     use sui::coin::{Self, Coin};
-    use sui::balance::{Self, Balance};
     use sui::sui::SUI;
     use sui::clock::Clock;
     use sui::event;
 
-    use frontier_explorer_hub::admin;
+    use bounty_escrow::bounty::{Self, Bounty};
+    use bounty_escrow::verifier::VerifierCap;
     use frontier_explorer_hub::intel;
 
     // ═══════════════════════════════════════════════
-    // Error codes (mirrored from admin for abort origin)
+    // Error codes (local for abort origin matching)
     // ═══════════════════════════════════════════════
 
-    const ENotReporter: u64 = 4;
-    const EBountyNotOpen: u64 = 14;
-    const EBountyExpired: u64 = 15;
-    const EBountyNotExpired: u64 = 16;
-    const EBountyTypeMismatch: u64 = 17;
-    const EBountyRegionMismatch: u64 = 18;
-    const EZeroReward: u64 = 23;
-    const EDeadlineInPast: u64 = 24;
-    const EBountyNotCompleted: u64 = 25;
+    const EIntelTypeMismatch: u64 = 100;
+    const EIntelRegionMismatch: u64 = 101;
+    const ENotReporter: u64 = 102;
+    const EMetaBountyMismatch: u64 = 103;
 
     // ═══════════════════════════════════════════════
     // Structs
     // ═══════════════════════════════════════════════
 
-    public struct IntelSubmission has store, drop, copy {
-        intel_id: ID,
-        submitter: address,
-    }
-
-    public struct BountyRequest has key {
+    /// Intel-specific metadata linked to a bounty_escrow::Bounty<SUI>.
+    /// Shared object — stores the domain criteria for intel matching.
+    public struct IntelBountyMeta has key {
         id: UID,
-        requester: address,
+        bounty_id: ID,
+        creator: address,
         target_region: intel::GridCell,
         intel_types_wanted: vector<u8>,
-        reward_amount: u64,
-        escrow: Balance<SUI>,
-        deadline: u64,
-        status: u8,
-        submissions: vector<IntelSubmission>,
     }
 
-    public struct BountyCreatedEvent has copy, drop {
+    // ═══════════════════════════════════════════════
+    // Events
+    // ═══════════════════════════════════════════════
+
+    public struct IntelBountyCreatedEvent has copy, drop {
         bounty_id: ID,
-        requester: address,
+        meta_id: ID,
+        creator: address,
         target_region: intel::GridCell,
-        reward_amount: u64,
-        deadline: u64,
+        intel_types_wanted: vector<u8>,
     }
 
-    public struct BountyCompletedEvent has copy, drop {
+    public struct IntelVerifiedEvent has copy, drop {
         bounty_id: ID,
-        explorer: address,
+        hunter: address,
         intel_id: ID,
-        reward_amount: u64,
     }
 
     // ═══════════════════════════════════════════════
-    // Core functions
+    // Create
     // ═══════════════════════════════════════════════
 
-    public fun create_bounty(
-        payment: Coin<SUI>,
+    /// Create an intel bounty backed by bounty_escrow.
+    /// Atomically creates the escrow Bounty<SUI> + IntelBountyMeta in one tx.
+    public fun create_intel_bounty(
+        title: String,
+        description: String,
+        coin: Coin<SUI>,
+        reward_amount: u64,
+        required_stake: u64,
+        max_claims: u64,
+        deadline: u64,
+        grace_period: u64,
+        cleanup_reward_bps: u16,
+        verifier_addr: address,
         target_region: intel::GridCell,
         intel_types_wanted: vector<u8>,
-        deadline: u64,
         clock: &Clock,
         ctx: &mut TxContext,
     ) {
-        assert!(payment.value() > 0, EZeroReward);
-        assert!(deadline > clock.timestamp_ms(), EDeadlineInPast);
+        let (change, bounty_id) = bounty::create_bounty<SUI>(
+            title, description, coin,
+            reward_amount, required_stake, max_claims,
+            deadline, grace_period, cleanup_reward_bps,
+            verifier_addr, clock, ctx,
+        );
 
-        let reward_amount = payment.value();
-        let bounty = BountyRequest {
+        let meta = IntelBountyMeta {
             id: object::new(ctx),
-            requester: ctx.sender(),
+            bounty_id,
+            creator: ctx.sender(),
             target_region,
             intel_types_wanted,
-            reward_amount,
-            escrow: payment.into_balance(),
-            deadline,
-            status: admin::bounty_open(),
-            submissions: vector[],
         };
 
-        event::emit(BountyCreatedEvent {
-            bounty_id: object::id(&bounty),
-            requester: ctx.sender(),
+        event::emit(IntelBountyCreatedEvent {
+            bounty_id,
+            meta_id: object::id(&meta),
+            creator: ctx.sender(),
             target_region,
-            reward_amount,
-            deadline,
+            intel_types_wanted,
         });
 
-        transfer::share_object(bounty);
+        transfer::share_object(meta);
+
+        if (coin::value(&change) > 0) {
+            transfer::public_transfer(change, ctx.sender());
+        } else {
+            coin::destroy_zero(change);
+        };
     }
 
-    public fun submit_for_bounty(
-        bounty: &mut BountyRequest,
+    // ═══════════════════════════════════════════════
+    // Verify + Approve
+    // ═══════════════════════════════════════════════
+
+    /// Verifier validates intel matches bounty criteria, then approves hunter.
+    /// Anti-frontrunning: intel reporter must equal hunter address.
+    public fun verify_and_approve(
+        bounty_obj: &mut Bounty<SUI>,
+        meta: &IntelBountyMeta,
         intel: &intel::IntelReport,
+        hunter: address,
+        cap: &VerifierCap,
         clock: &Clock,
         ctx: &mut TxContext,
     ) {
-        assert!(bounty.status == admin::bounty_open(), EBountyNotOpen);
-        assert!(clock.timestamp_ms() <= bounty.deadline, EBountyExpired);
-        assert!(ctx.sender() == intel.reporter(), ENotReporter);
+        // Meta must belong to this bounty
+        assert!(meta.bounty_id == object::id(bounty_obj), EMetaBountyMismatch);
 
-        let it = intel.intel_type();
-        assert!(vector::contains(&bounty.intel_types_wanted, &it), EBountyTypeMismatch);
-        assert!(intel::is_in_region(&intel.location(), intel::region_id(&bounty.target_region)), EBountyRegionMismatch);
+        // Validate intel match
+        validate_intel_match(meta, intel, hunter);
 
-        let intel_id = object::id(intel);
-        bounty.submissions.push_back(IntelSubmission {
-            intel_id,
-            submitter: ctx.sender(),
-        });
+        // Delegate approval to bounty_escrow
+        bounty::approve_hunter<SUI>(bounty_obj, hunter, cap, clock, ctx);
 
-        bounty.status = admin::bounty_completed();
-
-        let amount = bounty.escrow.value();
-        let reward_bal = balance::split(&mut bounty.escrow, amount);
-        let reward_amount = amount;
-        transfer::public_transfer(coin::from_balance(reward_bal, ctx), ctx.sender());
-
-        event::emit(BountyCompletedEvent {
-            bounty_id: object::id(bounty),
-            explorer: ctx.sender(),
-            intel_id,
-            reward_amount,
+        event::emit(IntelVerifiedEvent {
+            bounty_id: meta.bounty_id,
+            hunter,
+            intel_id: object::id(intel),
         });
     }
 
-    public fun refund_expired_bounty(
-        bounty: BountyRequest,
-        clock: &Clock,
-        ctx: &mut TxContext,
+    // ═══════════════════════════════════════════════
+    // Internal validation
+    // ═══════════════════════════════════════════════
+
+    /// Validates intel matches bounty metadata criteria.
+    fun validate_intel_match(
+        meta: &IntelBountyMeta,
+        intel: &intel::IntelReport,
+        hunter: address,
     ) {
-        assert!(clock.timestamp_ms() > bounty.deadline, EBountyNotExpired);
-        assert!(bounty.status == admin::bounty_open(), EBountyNotOpen);
+        // Anti-frontrunning: reporter must be the hunter
+        assert!(intel::reporter(intel) == hunter, ENotReporter);
 
-        let BountyRequest {
-            id,
-            requester,
-            target_region: _,
-            intel_types_wanted: _,
-            reward_amount: _,
-            escrow,
-            deadline: _,
-            status: _,
-            submissions: _,
-        } = bounty;
+        // Intel type must be in the wanted list
+        let it = intel::intel_type(intel);
+        assert!(vector::contains(&meta.intel_types_wanted, &it), EIntelTypeMismatch);
 
-        object::delete(id);
-        transfer::public_transfer(coin::from_balance(escrow, ctx), requester);
-    }
-
-    public fun cleanup_completed_bounty(bounty: BountyRequest) {
-        assert!(bounty.status == admin::bounty_completed(), EBountyNotCompleted);
-
-        let BountyRequest {
-            id,
-            requester: _,
-            target_region: _,
-            intel_types_wanted: _,
-            reward_amount: _,
-            escrow,
-            deadline: _,
-            status: _,
-            submissions: _,
-        } = bounty;
-
-        object::delete(id);
-        balance::destroy_zero(escrow);
+        // Intel location must be in target region
+        assert!(
+            intel::is_in_region(
+                &intel::location(intel),
+                intel::region_id(&meta.target_region),
+            ),
+            EIntelRegionMismatch,
+        );
     }
 
     // ═══════════════════════════════════════════════
-    // Accessor functions
+    // Accessors
     // ═══════════════════════════════════════════════
 
-    public fun requester(bounty: &BountyRequest): address { bounty.requester }
-    public fun reward_amount(bounty: &BountyRequest): u64 { bounty.reward_amount }
-    public fun deadline(bounty: &BountyRequest): u64 { bounty.deadline }
-    public fun status(bounty: &BountyRequest): u8 { bounty.status }
-    public fun escrow_value(bounty: &BountyRequest): u64 { bounty.escrow.value() }
+    public fun meta_bounty_id(meta: &IntelBountyMeta): ID { meta.bounty_id }
+    public fun meta_creator(meta: &IntelBountyMeta): address { meta.creator }
+    public fun meta_target_region(meta: &IntelBountyMeta): intel::GridCell { meta.target_region }
+    public fun meta_intel_types_wanted(meta: &IntelBountyMeta): vector<u8> { meta.intel_types_wanted }
 
     // ═══════════════════════════════════════════════
     // Test helpers
     // ═══════════════════════════════════════════════
 
     #[test_only]
-    public fun create_bounty_for_testing(
-        payment: Coin<SUI>,
+    public fun create_meta_for_testing(
+        bounty_id: ID,
+        creator: address,
         target_region: intel::GridCell,
         intel_types_wanted: vector<u8>,
-        deadline: u64,
         ctx: &mut TxContext,
-    ): BountyRequest {
-        let reward_amount = payment.value();
-        BountyRequest {
+    ): IntelBountyMeta {
+        IntelBountyMeta {
             id: object::new(ctx),
-            requester: ctx.sender(),
+            bounty_id,
+            creator,
             target_region,
             intel_types_wanted,
-            reward_amount,
-            escrow: payment.into_balance(),
-            deadline,
-            status: admin::bounty_open(),
-            submissions: vector[],
         }
     }
 
     #[test_only]
-    public fun destroy_bounty_for_testing(bounty: BountyRequest) {
-        let BountyRequest {
-            id,
-            requester: _,
-            target_region: _,
-            intel_types_wanted: _,
-            reward_amount: _,
-            escrow,
-            deadline: _,
-            status: _,
-            submissions: _,
-        } = bounty;
+    public fun destroy_meta_for_testing(meta: IntelBountyMeta) {
+        let IntelBountyMeta {
+            id, bounty_id: _, creator: _, target_region: _, intel_types_wanted: _,
+        } = meta;
         object::delete(id);
-        balance::destroy_for_testing(escrow);
+    }
+
+    /// Expose validation logic for unit testing without needing a real Bounty object.
+    #[test_only]
+    public fun validate_intel_match_for_testing(
+        meta: &IntelBountyMeta,
+        intel: &intel::IntelReport,
+        hunter: address,
+    ) {
+        validate_intel_match(meta, intel, hunter);
     }
 }

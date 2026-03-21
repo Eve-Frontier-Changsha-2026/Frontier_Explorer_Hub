@@ -1,221 +1,300 @@
 #[test_only]
 module frontier_explorer_hub::bounty_tests {
-    use sui::coin;
-    use sui::sui::SUI;
     use sui::clock;
 
-    use frontier_explorer_hub::admin;
     use frontier_explorer_hub::intel;
     use frontier_explorer_hub::bounty;
 
+    // ═══════════════════════════════════════════════
+    // Meta creation + accessors
+    // ═══════════════════════════════════════════════
+
     #[test]
-    fun test_bounty_full_lifecycle() {
+    fun test_meta_creation_and_accessors() {
+        let mut ctx = tx_context::dummy();
+        let region = intel::new_grid_cell(42, 10, 20, 30, 3);
+        let types = vector[0u8, 1u8];
+        let fake_bounty_id = object::id_from_address(@0xBEEF);
+
+        let meta = bounty::create_meta_for_testing(
+            fake_bounty_id,
+            @0xA,
+            region,
+            types,
+            &mut ctx,
+        );
+
+        assert!(bounty::meta_bounty_id(&meta) == fake_bounty_id);
+        assert!(bounty::meta_creator(&meta) == @0xA);
+        assert!(intel::region_id(&bounty::meta_target_region(&meta)) == 42);
+        assert!(bounty::meta_intel_types_wanted(&meta) == vector[0u8, 1u8]);
+
+        bounty::destroy_meta_for_testing(meta);
+    }
+
+    // ═══════════════════════════════════════════════
+    // Intel matching — happy path
+    // ═══════════════════════════════════════════════
+
+    #[test]
+    fun test_validate_intel_match_success() {
         let mut ctx = tx_context::dummy();
         let clock = clock::create_for_testing(&mut ctx);
+        let fake_bounty_id = object::id_from_address(@0xBEEF);
 
-        let payment = coin::mint_for_testing<SUI>(1_000_000_000, &mut ctx);
         let region = intel::new_grid_cell(42, 10, 20, 30, 3);
-        let intel_types = vector[0u8, 1u8];
-
-        let mut bty = bounty::create_bounty_for_testing(
-            payment,
+        let meta = bounty::create_meta_for_testing(
+            fake_bounty_id,
+            @0xA,
             region,
-            intel_types,
-            100_000, // deadline
+            vector[0u8, 1u8],
             &mut ctx,
         );
 
-        // Verify initial state
-        assert!(bounty::status(&bty) == admin::bounty_open());
-        assert!(bounty::reward_amount(&bty) == 1_000_000_000);
-        assert!(bounty::escrow_value(&bty) == 1_000_000_000);
-
-        // Create intel matching the bounty (type=0, region=42), reporter = sender = @0x0
+        // Intel: type=0 (RESOURCE), region=42, reporter=@0x0 (dummy sender)
         let intel_report = intel::create_intel_for_testing(
-            @0x0,       // reporter = dummy ctx sender
-            0,          // intel_type = RESOURCE
-            5,          // severity
-            42,         // region_id
-            10, 20, 30, // sector
-            3,          // zoom
-            0,          // deposit_value
-            &clock,
-            &mut ctx,
+            @0x0, 0, 5, 42, 10, 20, 30, 3, 0, &clock, &mut ctx,
         );
 
-        bounty::submit_for_bounty(&mut bty, &intel_report, &clock, &mut ctx);
+        // hunter = @0x0 = reporter → should pass
+        bounty::validate_intel_match_for_testing(&meta, &intel_report, @0x0);
 
-        // Verify completed state
-        assert!(bounty::status(&bty) == admin::bounty_completed());
-        assert!(bounty::escrow_value(&bty) == 0);
-
-        // Cleanup
-        bounty::cleanup_completed_bounty(bty);
         intel::destroy_intel_for_testing(intel_report);
+        bounty::destroy_meta_for_testing(meta);
         clock::destroy_for_testing(clock);
     }
+
+    // ═══════════════════════════════════════════════
+    // Intel matching — wrong type
+    // ═══════════════════════════════════════════════
 
     #[test]
-    fun test_bounty_refund_on_expiry() {
+    #[expected_failure(abort_code = bounty::EIntelTypeMismatch)]
+    fun test_validate_wrong_intel_type() {
         let mut ctx = tx_context::dummy();
-        let mut clock = clock::create_for_testing(&mut ctx);
+        let clock = clock::create_for_testing(&mut ctx);
+        let fake_bounty_id = object::id_from_address(@0xBEEF);
 
-        let payment = coin::mint_for_testing<SUI>(1_000_000_000, &mut ctx);
+        // Meta wants type 0 and 1 only
         let region = intel::new_grid_cell(42, 10, 20, 30, 3);
-
-        let bty = bounty::create_bounty_for_testing(
-            payment,
+        let meta = bounty::create_meta_for_testing(
+            fake_bounty_id,
+            @0xA,
             region,
-            vector[0u8],
-            1000, // deadline = 1000ms
+            vector[0u8, 1u8],
             &mut ctx,
         );
 
-        // Advance clock past deadline
-        clock::increment_for_testing(&mut clock, 1001);
+        // Intel: type=2 (WRECKAGE) — not in wanted list
+        let intel_report = intel::create_intel_for_testing(
+            @0x0, 2, 5, 42, 10, 20, 30, 3, 0, &clock, &mut ctx,
+        );
 
-        // Refund — consumes the bounty
-        bounty::refund_expired_bounty(bty, &clock, &mut ctx);
+        bounty::validate_intel_match_for_testing(&meta, &intel_report, @0x0);
 
+        // Unreachable
+        intel::destroy_intel_for_testing(intel_report);
+        bounty::destroy_meta_for_testing(meta);
         clock::destroy_for_testing(clock);
     }
+
+    // ═══════════════════════════════════════════════
+    // Intel matching — wrong region
+    // ═══════════════════════════════════════════════
+
+    #[test]
+    #[expected_failure(abort_code = bounty::EIntelRegionMismatch)]
+    fun test_validate_wrong_region() {
+        let mut ctx = tx_context::dummy();
+        let clock = clock::create_for_testing(&mut ctx);
+        let fake_bounty_id = object::id_from_address(@0xBEEF);
+
+        // Meta wants region 42
+        let region = intel::new_grid_cell(42, 10, 20, 30, 3);
+        let meta = bounty::create_meta_for_testing(
+            fake_bounty_id,
+            @0xA,
+            region,
+            vector[0u8],
+            &mut ctx,
+        );
+
+        // Intel: region=99 — mismatch
+        let intel_report = intel::create_intel_for_testing(
+            @0x0, 0, 5, 99, 10, 20, 30, 3, 0, &clock, &mut ctx,
+        );
+
+        bounty::validate_intel_match_for_testing(&meta, &intel_report, @0x0);
+
+        // Unreachable
+        intel::destroy_intel_for_testing(intel_report);
+        bounty::destroy_meta_for_testing(meta);
+        clock::destroy_for_testing(clock);
+    }
+
+    // ═══════════════════════════════════════════════
+    // Anti-frontrunning — reporter ≠ hunter
+    // ═══════════════════════════════════════════════
 
     #[test]
     #[expected_failure(abort_code = bounty::ENotReporter)]
     fun test_frontrunning_rejected() {
         let mut ctx = tx_context::dummy();
         let clock = clock::create_for_testing(&mut ctx);
+        let fake_bounty_id = object::id_from_address(@0xBEEF);
 
-        let payment = coin::mint_for_testing<SUI>(1_000_000_000, &mut ctx);
         let region = intel::new_grid_cell(42, 10, 20, 30, 3);
-
-        let mut bty = bounty::create_bounty_for_testing(
-            payment,
+        let meta = bounty::create_meta_for_testing(
+            fake_bounty_id,
+            @0xA,
             region,
             vector[0u8],
-            100_000,
             &mut ctx,
         );
 
         // Intel reported by @0xA
         let intel_report = intel::create_intel_for_testing(
+            @0xA, 0, 5, 42, 10, 20, 30, 3, 0, &clock, &mut ctx,
+        );
+
+        // Hunter = @0xB ≠ reporter @0xA → should fail
+        bounty::validate_intel_match_for_testing(&meta, &intel_report, @0xB);
+
+        // Unreachable
+        intel::destroy_intel_for_testing(intel_report);
+        bounty::destroy_meta_for_testing(meta);
+        clock::destroy_for_testing(clock);
+    }
+
+    // ═══════════════════════════════════════════════
+    // Monkey Tests
+    // ═══════════════════════════════════════════════
+
+    #[test]
+    fun test_monkey_empty_types_wanted() {
+        // Edge case: bounty wants NO intel types → nothing can match
+        // This test verifies that an empty wanted list rejects all types
+        let mut ctx = tx_context::dummy();
+        let clock = clock::create_for_testing(&mut ctx);
+        let fake_bounty_id = object::id_from_address(@0xBEEF);
+
+        let region = intel::new_grid_cell(42, 10, 20, 30, 3);
+        let meta = bounty::create_meta_for_testing(
+            fake_bounty_id,
             @0xA,
-            0, 5, 42, 10, 20, 30, 3, 0,
-            &clock,
+            region,
+            vector[],  // empty wanted list
             &mut ctx,
         );
 
-        // Submit from @0xB — should fail with ENotReporter
-        let mut ctx_b = tx_context::new_from_hint(@0xB, 0, 0, 0, 0);
-        bounty::submit_for_bounty(&mut bty, &intel_report, &clock, &mut ctx_b);
+        // Try to match with type 0 — should fail
+        let intel_report = intel::create_intel_for_testing(
+            @0x0, 0, 5, 42, 10, 20, 30, 3, 0, &clock, &mut ctx,
+        );
 
-        // Cleanup (won't reach here)
+        // We can't use #[expected_failure] here since we want to verify
+        // it would fail, but let's just test the meta state
+        assert!(bounty::meta_intel_types_wanted(&meta) == vector[]);
+
         intel::destroy_intel_for_testing(intel_report);
-        bounty::destroy_bounty_for_testing(bty);
+        bounty::destroy_meta_for_testing(meta);
         clock::destroy_for_testing(clock);
     }
 
-    // ═══════════════════════════════════════════════
-    // Monkey Tests — extreme inputs & boundary values
-    // ═══════════════════════════════════════════════
-
     #[test]
-    #[expected_failure(abort_code = bounty::EZeroReward)]
-    fun test_monkey_bounty_reward_zero() {
+    #[expected_failure(abort_code = bounty::EIntelTypeMismatch)]
+    fun test_monkey_empty_types_rejects_all() {
         let mut ctx = tx_context::dummy();
         let clock = clock::create_for_testing(&mut ctx);
-        let payment = coin::mint_for_testing<SUI>(0, &mut ctx); // zero reward
-        let region = intel::new_grid_cell(1, 10, 20, 30, 3);
+        let fake_bounty_id = object::id_from_address(@0xBEEF);
 
-        bounty::create_bounty(
-            payment, region, vector[0u8], 100_000, &clock, &mut ctx,
-        );
-
-        clock::destroy_for_testing(clock);
-    }
-
-    #[test]
-    #[expected_failure(abort_code = bounty::EDeadlineInPast)]
-    fun test_monkey_bounty_deadline_in_past() {
-        let mut ctx = tx_context::dummy();
-        let mut clock = clock::create_for_testing(&mut ctx);
-        // Advance clock so deadline=0 is in the past
-        clock::increment_for_testing(&mut clock, 1000);
-
-        let payment = coin::mint_for_testing<SUI>(1_000_000_000, &mut ctx);
-        let region = intel::new_grid_cell(1, 10, 20, 30, 3);
-
-        // deadline = 500 < clock.timestamp_ms() = 1000
-        bounty::create_bounty(
-            payment, region, vector[0u8], 500, &clock, &mut ctx,
-        );
-
-        clock::destroy_for_testing(clock);
-    }
-
-    #[test]
-    #[expected_failure(abort_code = bounty::EBountyNotOpen)]
-    fun test_monkey_double_claim() {
-        // After first claim, bounty status = COMPLETED → second claim fails
-        let mut ctx = tx_context::dummy();
-        let clock = clock::create_for_testing(&mut ctx);
-
-        let payment = coin::mint_for_testing<SUI>(1_000_000_000, &mut ctx);
         let region = intel::new_grid_cell(42, 10, 20, 30, 3);
-
-        let mut bty = bounty::create_bounty_for_testing(
-            payment, region, vector[0u8], 100_000, &mut ctx,
-        );
-
-        let intel1 = intel::create_intel_for_testing(
-            @0x0, 0, 5, 42, 10, 20, 30, 3, 0, &clock, &mut ctx,
-        );
-        let intel2 = intel::create_intel_for_testing(
-            @0x0, 0, 5, 42, 10, 20, 30, 3, 0, &clock, &mut ctx,
-        );
-
-        // First claim succeeds
-        bounty::submit_for_bounty(&mut bty, &intel1, &clock, &mut ctx);
-
-        // Second claim → EBountyNotOpen
-        bounty::submit_for_bounty(&mut bty, &intel2, &clock, &mut ctx);
-
-        // Cleanup (unreachable)
-        intel::destroy_intel_for_testing(intel1);
-        intel::destroy_intel_for_testing(intel2);
-        bounty::destroy_bounty_for_testing(bty);
-        clock::destroy_for_testing(clock);
-    }
-
-    #[test]
-    #[expected_failure(abort_code = bounty::EBountyNotOpen)]
-    fun test_monkey_refund_completed_bounty() {
-        // Cannot refund a bounty that's already been claimed, even after deadline
-        let mut ctx = tx_context::dummy();
-        let mut clock = clock::create_for_testing(&mut ctx);
-
-        let payment = coin::mint_for_testing<SUI>(1_000_000_000, &mut ctx);
-        let region = intel::new_grid_cell(42, 10, 20, 30, 3);
-
-        let mut bty = bounty::create_bounty_for_testing(
-            payment, region, vector[0u8], 100_000, &mut ctx,
+        let meta = bounty::create_meta_for_testing(
+            fake_bounty_id, @0xA, region, vector[], &mut ctx,
         );
 
         let intel_report = intel::create_intel_for_testing(
             @0x0, 0, 5, 42, 10, 20, 30, 3, 0, &clock, &mut ctx,
         );
 
-        // Claim the bounty
-        bounty::submit_for_bounty(&mut bty, &intel_report, &clock, &mut ctx);
+        bounty::validate_intel_match_for_testing(&meta, &intel_report, @0x0);
 
-        // Advance past deadline so it passes the expiry check,
-        // then hits the status check → EBountyNotOpen (status = COMPLETED)
-        clock::increment_for_testing(&mut clock, 200_000);
-
-        bounty::refund_expired_bounty(bty, &clock, &mut ctx);
-
-        // Cleanup (unreachable)
         intel::destroy_intel_for_testing(intel_report);
+        bounty::destroy_meta_for_testing(meta);
+        clock::destroy_for_testing(clock);
+    }
+
+    #[test]
+    fun test_monkey_all_types_accepted() {
+        // Bounty wants ALL intel types (0-3) → any type should pass
+        let mut ctx = tx_context::dummy();
+        let clock = clock::create_for_testing(&mut ctx);
+        let fake_bounty_id = object::id_from_address(@0xBEEF);
+
+        let region = intel::new_grid_cell(42, 10, 20, 30, 3);
+        let meta = bounty::create_meta_for_testing(
+            fake_bounty_id, @0xA, region, vector[0u8, 1u8, 2u8, 3u8], &mut ctx,
+        );
+
+        // Test each type
+        let mut t = 0u8;
+        while (t < 4) {
+            let intel_report = intel::create_intel_for_testing(
+                @0x0, t, 5, 42, 10, 20, 30, 3, 0, &clock, &mut ctx,
+            );
+            bounty::validate_intel_match_for_testing(&meta, &intel_report, @0x0);
+            intel::destroy_intel_for_testing(intel_report);
+            t = t + 1;
+        };
+
+        bounty::destroy_meta_for_testing(meta);
+        clock::destroy_for_testing(clock);
+    }
+
+    #[test]
+    fun test_monkey_region_zero() {
+        // Edge case: region_id = 0 should still match
+        let mut ctx = tx_context::dummy();
+        let clock = clock::create_for_testing(&mut ctx);
+        let fake_bounty_id = object::id_from_address(@0xBEEF);
+
+        let region = intel::new_grid_cell(0, 0, 0, 0, 0);
+        let meta = bounty::create_meta_for_testing(
+            fake_bounty_id, @0xA, region, vector[0u8], &mut ctx,
+        );
+
+        let intel_report = intel::create_intel_for_testing(
+            @0x0, 0, 5, 0, 0, 0, 0, 0, 0, &clock, &mut ctx,
+        );
+
+        bounty::validate_intel_match_for_testing(&meta, &intel_report, @0x0);
+
+        intel::destroy_intel_for_testing(intel_report);
+        bounty::destroy_meta_for_testing(meta);
+        clock::destroy_for_testing(clock);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = bounty::EIntelRegionMismatch)]
+    fun test_monkey_max_region_mismatch() {
+        // Edge case: u64::MAX region wanted, region 0 submitted
+        let mut ctx = tx_context::dummy();
+        let clock = clock::create_for_testing(&mut ctx);
+        let fake_bounty_id = object::id_from_address(@0xBEEF);
+
+        let region = intel::new_grid_cell(18446744073709551615, 0, 0, 0, 0);
+        let meta = bounty::create_meta_for_testing(
+            fake_bounty_id, @0xA, region, vector[0u8], &mut ctx,
+        );
+
+        let intel_report = intel::create_intel_for_testing(
+            @0x0, 0, 5, 0, 0, 0, 0, 0, 0, &clock, &mut ctx,
+        );
+
+        bounty::validate_intel_match_for_testing(&meta, &intel_report, @0x0);
+
+        intel::destroy_intel_for_testing(intel_report);
+        bounty::destroy_meta_for_testing(meta);
         clock::destroy_for_testing(clock);
     }
 }

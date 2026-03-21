@@ -36,12 +36,6 @@ module frontier_explorer_hub::admin_tests {
 
         // Batch limit
         assert!(admin::max_batch_size() == 20);
-
-        // Bounty statuses are sequential
-        assert!(admin::bounty_open() == 0);
-        assert!(admin::bounty_submitted() == 1);
-        assert!(admin::bounty_completed() == 2);
-        assert!(admin::bounty_expired() == 3);
     }
 
     #[test]
