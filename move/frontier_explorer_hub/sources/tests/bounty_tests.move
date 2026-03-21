@@ -114,4 +114,108 @@ module frontier_explorer_hub::bounty_tests {
         bounty::destroy_bounty_for_testing(bty);
         clock::destroy_for_testing(clock);
     }
+
+    // ═══════════════════════════════════════════════
+    // Monkey Tests — extreme inputs & boundary values
+    // ═══════════════════════════════════════════════
+
+    #[test]
+    #[expected_failure(abort_code = bounty::EZeroReward)]
+    fun test_monkey_bounty_reward_zero() {
+        let mut ctx = tx_context::dummy();
+        let clock = clock::create_for_testing(&mut ctx);
+        let payment = coin::mint_for_testing<SUI>(0, &mut ctx); // zero reward
+        let region = intel::new_grid_cell(1, 10, 20, 30, 3);
+
+        bounty::create_bounty(
+            payment, region, vector[0u8], 100_000, &clock, &mut ctx,
+        );
+
+        clock::destroy_for_testing(clock);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = bounty::EDeadlineInPast)]
+    fun test_monkey_bounty_deadline_in_past() {
+        let mut ctx = tx_context::dummy();
+        let mut clock = clock::create_for_testing(&mut ctx);
+        // Advance clock so deadline=0 is in the past
+        clock::increment_for_testing(&mut clock, 1000);
+
+        let payment = coin::mint_for_testing<SUI>(1_000_000_000, &mut ctx);
+        let region = intel::new_grid_cell(1, 10, 20, 30, 3);
+
+        // deadline = 500 < clock.timestamp_ms() = 1000
+        bounty::create_bounty(
+            payment, region, vector[0u8], 500, &clock, &mut ctx,
+        );
+
+        clock::destroy_for_testing(clock);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = bounty::EBountyNotOpen)]
+    fun test_monkey_double_claim() {
+        // After first claim, bounty status = COMPLETED → second claim fails
+        let mut ctx = tx_context::dummy();
+        let clock = clock::create_for_testing(&mut ctx);
+
+        let payment = coin::mint_for_testing<SUI>(1_000_000_000, &mut ctx);
+        let region = intel::new_grid_cell(42, 10, 20, 30, 3);
+
+        let mut bty = bounty::create_bounty_for_testing(
+            payment, region, vector[0u8], 100_000, &mut ctx,
+        );
+
+        let intel1 = intel::create_intel_for_testing(
+            @0x0, 0, 5, 42, 10, 20, 30, 3, 0, &clock, &mut ctx,
+        );
+        let intel2 = intel::create_intel_for_testing(
+            @0x0, 0, 5, 42, 10, 20, 30, 3, 0, &clock, &mut ctx,
+        );
+
+        // First claim succeeds
+        bounty::submit_for_bounty(&mut bty, &intel1, &clock, &mut ctx);
+
+        // Second claim → EBountyNotOpen
+        bounty::submit_for_bounty(&mut bty, &intel2, &clock, &mut ctx);
+
+        // Cleanup (unreachable)
+        intel::destroy_intel_for_testing(intel1);
+        intel::destroy_intel_for_testing(intel2);
+        bounty::destroy_bounty_for_testing(bty);
+        clock::destroy_for_testing(clock);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = bounty::EBountyNotOpen)]
+    fun test_monkey_refund_completed_bounty() {
+        // Cannot refund a bounty that's already been claimed, even after deadline
+        let mut ctx = tx_context::dummy();
+        let mut clock = clock::create_for_testing(&mut ctx);
+
+        let payment = coin::mint_for_testing<SUI>(1_000_000_000, &mut ctx);
+        let region = intel::new_grid_cell(42, 10, 20, 30, 3);
+
+        let mut bty = bounty::create_bounty_for_testing(
+            payment, region, vector[0u8], 100_000, &mut ctx,
+        );
+
+        let intel_report = intel::create_intel_for_testing(
+            @0x0, 0, 5, 42, 10, 20, 30, 3, 0, &clock, &mut ctx,
+        );
+
+        // Claim the bounty
+        bounty::submit_for_bounty(&mut bty, &intel_report, &clock, &mut ctx);
+
+        // Advance past deadline so it passes the expiry check,
+        // then hits the status check → EBountyNotOpen (status = COMPLETED)
+        clock::increment_for_testing(&mut clock, 200_000);
+
+        bounty::refund_expired_bounty(bty, &clock, &mut ctx);
+
+        // Cleanup (unreachable)
+        intel::destroy_intel_for_testing(intel_report);
+        clock::destroy_for_testing(clock);
+    }
 }

@@ -148,4 +148,83 @@ module frontier_explorer_hub::intel_tests {
         coin::burn_for_testing(deposit);
         clock::destroy_for_testing(clock);
     }
+
+    // ═══════════════════════════════════════════════
+    // Monkey Tests — extreme inputs & boundary values
+    // ═══════════════════════════════════════════════
+
+    #[test]
+    fun test_monkey_max_severity_boundary() {
+        // severity = 10 (MAX_SEVERITY) should succeed
+        let mut ctx = tx_context::dummy();
+        let clock = clock::create_for_testing(&mut ctx);
+        let deposit = coin::mint_for_testing<SUI>(admin::min_submit_deposit(), &mut ctx);
+
+        intel::submit_intel(
+            &clock, deposit,
+            1, 10, 20, 30, 3, vector[1, 2, 3],
+            admin::intel_resource(),
+            10, // MAX_SEVERITY boundary
+            1000000, admin::vis_public(), &mut ctx,
+        );
+
+        clock::destroy_for_testing(clock);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = intel::EInsufficientDeposit)]
+    fun test_monkey_zero_deposit() {
+        let mut ctx = tx_context::dummy();
+        let clock = clock::create_for_testing(&mut ctx);
+        let deposit = coin::mint_for_testing<SUI>(0, &mut ctx); // zero
+
+        intel::submit_intel(
+            &clock, deposit,
+            1, 10, 20, 30, 3, vector[1],
+            admin::intel_resource(), 5, 1000000, admin::vis_public(),
+            &mut ctx,
+        );
+
+        clock::destroy_for_testing(clock);
+    }
+
+    #[test]
+    fun test_monkey_max_u64_coordinates() {
+        // u64::MAX for sector coords — no constraint on range, should succeed
+        let mut ctx = tx_context::dummy();
+        let clock = clock::create_for_testing(&mut ctx);
+        let deposit = coin::mint_for_testing<SUI>(admin::min_submit_deposit(), &mut ctx);
+
+        intel::submit_intel(
+            &clock, deposit,
+            18446744073709551615, // u64::MAX region_id
+            18446744073709551615, // u64::MAX sector_x
+            18446744073709551615, // u64::MAX sector_y
+            18446744073709551615, // u64::MAX sector_z
+            255,                  // u8::MAX zoom_level
+            vector[],
+            admin::intel_resource(), 5, 1000000, admin::vis_public(),
+            &mut ctx,
+        );
+
+        clock::destroy_for_testing(clock);
+    }
+
+    #[test]
+    fun test_monkey_empty_location_hash() {
+        // empty vector<u8> as raw_location_hash — no constraint, should succeed
+        let mut ctx = tx_context::dummy();
+        let clock = clock::create_for_testing(&mut ctx);
+        let deposit = coin::mint_for_testing<SUI>(admin::min_submit_deposit(), &mut ctx);
+
+        intel::submit_intel(
+            &clock, deposit,
+            1, 10, 20, 30, 3,
+            vector[], // empty hash
+            admin::intel_resource(), 5, 1000000, admin::vis_public(),
+            &mut ctx,
+        );
+
+        clock::destroy_for_testing(clock);
+    }
 }

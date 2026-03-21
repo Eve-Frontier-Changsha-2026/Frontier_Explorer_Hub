@@ -121,4 +121,72 @@ module frontier_explorer_hub::access_tests {
         access::destroy_pricing_table_for_testing(pricing);
         test_utils::destroy(admin_cap);
     }
+
+    // ═══════════════════════════════════════════════
+    // Monkey Tests — extreme inputs & boundary values
+    // ═══════════════════════════════════════════════
+
+    #[test]
+    fun test_monkey_unlock_same_intel_twice() {
+        // Unlocking same intel twice is allowed (feature: multiple buyers)
+        let mut ctx = tx_context::dummy();
+        let clock = clock::create_for_testing(&mut ctx);
+        let pricing = access::create_pricing_table_for_testing(&mut ctx);
+        let mut config = subscription::create_config_for_testing(&mut ctx);
+
+        let intel = intel::create_intel_for_testing(
+            @0x1234, 0, 5, 1, 10, 20, 30, 1, 10_000_000, &clock, &mut ctx,
+        );
+
+        let mut payment = coin::mint_for_testing<SUI>(2_000_000_000, &mut ctx);
+        let price = 100_000_000; // default base price
+
+        // First unlock
+        access::unlock_intel(
+            &pricing, &mut config, &intel, &mut payment, price, &clock, &mut ctx,
+        );
+
+        // Second unlock — should also succeed
+        access::unlock_intel(
+            &pricing, &mut config, &intel, &mut payment, price, &clock, &mut ctx,
+        );
+
+        // Treasury should have 2x platform share = 2 * 30_000_000 = 60_000_000
+        assert!(subscription::treasury_balance(&config) == 60_000_000);
+
+        coin::burn_for_testing(payment);
+        intel::destroy_intel_for_testing(intel);
+        subscription::destroy_config_for_testing(config);
+        access::destroy_pricing_table_for_testing(pricing);
+        clock::destroy_for_testing(clock);
+    }
+
+    #[test]
+    fun test_monkey_unlock_zero_price_type() {
+        // No type multiplier set → defaults to 100 (1x base price)
+        let mut ctx = tx_context::dummy();
+        let clock = clock::create_for_testing(&mut ctx);
+        let pricing = access::create_pricing_table_for_testing(&mut ctx);
+        let mut config = subscription::create_config_for_testing(&mut ctx);
+
+        // intel_type = 3 (POPULATION) — no multiplier set for this type
+        let intel = intel::create_intel_for_testing(
+            @0x1234, 3, 5, 1, 10, 20, 30, 1, 10_000_000, &clock, &mut ctx,
+        );
+
+        let mut payment = coin::mint_for_testing<SUI>(1_000_000_000, &mut ctx);
+
+        // price = base * 100 / 100 = base = 100_000_000
+        access::unlock_intel(
+            &pricing, &mut config, &intel, &mut payment, 100_000_000, &clock, &mut ctx,
+        );
+
+        assert!(payment.value() == 900_000_000);
+
+        coin::burn_for_testing(payment);
+        intel::destroy_intel_for_testing(intel);
+        subscription::destroy_config_for_testing(config);
+        access::destroy_pricing_table_for_testing(pricing);
+        clock::destroy_for_testing(clock);
+    }
 }

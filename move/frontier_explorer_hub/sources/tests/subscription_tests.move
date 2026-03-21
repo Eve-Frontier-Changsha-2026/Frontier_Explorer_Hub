@@ -129,4 +129,79 @@ module frontier_explorer_hub::subscription_tests {
         test_utils::destroy(admin_cap);
         subscription::destroy_config_for_testing(config);
     }
+
+    // ═══════════════════════════════════════════════
+    // Monkey Tests — extreme inputs & boundary values
+    // ═══════════════════════════════════════════════
+
+    #[test]
+    fun test_monkey_subscribe_zero_days() {
+        // 0 days → cost = 0, creates immediately-expired NFT
+        let mut ctx = tx_context::dummy();
+        let clock = clock::create_for_testing(&mut ctx);
+        let mut config = subscription::create_config_for_testing(&mut ctx);
+        let mut coin = coin::mint_for_testing<SUI>(1_000_000_000, &mut ctx);
+
+        subscription::subscribe(&mut config, &mut coin, 0, &clock, &mut ctx);
+
+        // No SUI deducted
+        assert!(coin.value() == 1_000_000_000);
+        // Treasury empty — 0 cost
+        assert!(subscription::treasury_balance(&config) == 0);
+
+        clock::destroy_for_testing(clock);
+        coin::burn_for_testing(coin);
+        subscription::destroy_config_for_testing(config);
+    }
+
+    #[test]
+    #[expected_failure]
+    fun test_monkey_subscribe_max_u64_days() {
+        // u64::MAX days → arithmetic overflow on cost = price_per_day * days
+        let mut ctx = tx_context::dummy();
+        let clock = clock::create_for_testing(&mut ctx);
+        let mut config = subscription::create_config_for_testing(&mut ctx);
+        let mut coin = coin::mint_for_testing<SUI>(1_000_000_000, &mut ctx);
+
+        subscription::subscribe(
+            &mut config, &mut coin,
+            18446744073709551615, // u64::MAX
+            &clock, &mut ctx,
+        );
+
+        clock::destroy_for_testing(clock);
+        coin::burn_for_testing(coin);
+        subscription::destroy_config_for_testing(config);
+    }
+
+    #[test]
+    fun test_monkey_renew_expired_subscription() {
+        // Renew after expiry → should restart from now, not append to stale expiry
+        let mut ctx = tx_context::dummy();
+        let mut clock = clock::create_for_testing(&mut ctx);
+        let mut config = subscription::create_config_for_testing(&mut ctx);
+        let mut coin = coin::mint_for_testing<SUI>(10_000_000_000, &mut ctx);
+
+        let mut nft = subscription::create_free_nft_for_testing(&clock, &mut ctx);
+        subscription::upgrade(&mut config, &mut nft, &mut coin, 1, &clock, &mut ctx);
+
+        // expires_at = 1 day from now (clock=0)
+        assert!(subscription::expires_at(&nft) == MS_PER_DAY);
+
+        // Fast forward 10 days — well past expiry
+        clock::increment_for_testing(&mut clock, 10 * MS_PER_DAY);
+        assert!(subscription::is_active_premium(&nft, &clock) == false);
+
+        // Renew for 2 days — should restart from NOW (10 days), not append to stale expiry
+        subscription::renew(&mut config, &mut nft, &mut coin, 2, &clock, &mut ctx);
+
+        // Expected: now (10 days) + 2 days = 12 days
+        assert!(subscription::expires_at(&nft) == 12 * MS_PER_DAY);
+        assert!(subscription::is_active_premium(&nft, &clock) == true);
+
+        clock::destroy_for_testing(clock);
+        coin::burn_for_testing(coin);
+        transfer::public_transfer(nft, @0x0);
+        subscription::destroy_config_for_testing(config);
+    }
 }
