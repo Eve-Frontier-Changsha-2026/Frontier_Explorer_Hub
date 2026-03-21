@@ -227,4 +227,70 @@ module frontier_explorer_hub::intel_tests {
 
         clock::destroy_for_testing(clock);
     }
+
+    // ═══════════════════════════════════════════════
+    // AggregationAnchor Tests
+    // ═══════════════════════════════════════════════
+
+    #[test]
+    fun test_create_anchor_success() {
+        let mut ctx = tx_context::dummy();
+        let clock = clock::create_for_testing(&mut ctx);
+        let admin_cap = admin::create_admin_cap_for_testing(&mut ctx);
+
+        intel::create_anchor(
+            &admin_cap,
+            vector[0xaa, 0xbb, 0xcc, 0xdd], // merkle_root
+            42,   // report_count
+            3,    // zoom_level
+            &clock,
+            &mut ctx,
+        );
+
+        clock::destroy_for_testing(clock);
+        std::unit_test::destroy(admin_cap);
+    }
+
+    #[test]
+    fun test_create_anchor_empty_merkle_root() {
+        // empty merkle root — valid (aggregator may publish empty batch)
+        let mut ctx = tx_context::dummy();
+        let clock = clock::create_for_testing(&mut ctx);
+        let admin_cap = admin::create_admin_cap_for_testing(&mut ctx);
+
+        intel::create_anchor(
+            &admin_cap,
+            vector[], // empty merkle root
+            0,        // zero reports
+            0,        // zoom_level 0
+            &clock,
+            &mut ctx,
+        );
+
+        clock::destroy_for_testing(clock);
+        std::unit_test::destroy(admin_cap);
+    }
+
+    #[test]
+    fun test_create_anchor_max_report_count() {
+        // u64::MAX report count — no constraint, should succeed
+        let mut ctx = tx_context::dummy();
+        let clock = clock::create_for_testing(&mut ctx);
+        let admin_cap = admin::create_admin_cap_for_testing(&mut ctx);
+
+        intel::create_anchor(
+            &admin_cap,
+            vector[0xff, 0xfe, 0xfd, 0xfc, 0xfb, 0xfa, 0xf9, 0xf8,
+                   0xf7, 0xf6, 0xf5, 0xf4, 0xf3, 0xf2, 0xf1, 0xf0,
+                   0xef, 0xee, 0xed, 0xec, 0xeb, 0xea, 0xe9, 0xe8,
+                   0xe7, 0xe6, 0xe5, 0xe4, 0xe3, 0xe2, 0xe1, 0xe0], // 32-byte hash
+            18446744073709551615, // u64::MAX
+            255,              // u8::MAX zoom
+            &clock,
+            &mut ctx,
+        );
+
+        clock::destroy_for_testing(clock);
+        std::unit_test::destroy(admin_cap);
+    }
 }

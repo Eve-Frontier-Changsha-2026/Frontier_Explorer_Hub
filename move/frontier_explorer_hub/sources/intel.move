@@ -59,6 +59,14 @@ module frontier_explorer_hub::intel {
         visibility: u8,
     }
 
+    public struct AggregationAnchor has key {
+        id: UID,
+        merkle_root: vector<u8>,
+        report_count: u64,
+        timestamp: u64,
+        zoom_level: u8,
+    }
+
     public struct IntelSubmittedEvent has copy, drop {
         intel_id: ID,
         reporter: address,
@@ -67,6 +75,14 @@ module frontier_explorer_hub::intel {
         severity: u8,
         timestamp: u64,
         visibility: u8,
+    }
+
+    public struct AnchorCreatedEvent has copy, drop {
+        anchor_id: ID,
+        merkle_root: vector<u8>,
+        report_count: u64,
+        timestamp: u64,
+        zoom_level: u8,
     }
 
     // ═══════════════════════════════════════════════
@@ -233,6 +249,35 @@ module frontier_explorer_hub::intel {
         cell.region_id == region_id
     }
 
+    /// Create an on-chain anchor for verifiable heatmap aggregation.
+    /// Only callable by platform admin — anchors off-chain merkle root to chain.
+    public fun create_anchor(
+        _admin: &admin::AdminCap,
+        merkle_root: vector<u8>,
+        report_count: u64,
+        zoom_level: u8,
+        clock: &Clock,
+        ctx: &mut TxContext,
+    ) {
+        let anchor = AggregationAnchor {
+            id: object::new(ctx),
+            merkle_root,
+            report_count,
+            timestamp: clock.timestamp_ms(),
+            zoom_level,
+        };
+
+        event::emit(AnchorCreatedEvent {
+            anchor_id: object::id(&anchor),
+            merkle_root: anchor.merkle_root,
+            report_count,
+            timestamp: anchor.timestamp,
+            zoom_level,
+        });
+
+        transfer::share_object(anchor);
+    }
+
     // ═══════════════════════════════════════════════
     // Accessor functions — IntelReport
     // ═══════════════════════════════════════════════
@@ -256,6 +301,15 @@ module frontier_explorer_hub::intel {
     public fun sector_y(cell: &GridCell): u64 { cell.sector_y }
     public fun sector_z(cell: &GridCell): u64 { cell.sector_z }
     public fun zoom_level(cell: &GridCell): u8 { cell.zoom_level }
+
+    // ═══════════════════════════════════════════════
+    // Accessor functions — AggregationAnchor
+    // ═══════════════════════════════════════════════
+
+    public fun anchor_merkle_root(anchor: &AggregationAnchor): vector<u8> { anchor.merkle_root }
+    public fun anchor_report_count(anchor: &AggregationAnchor): u64 { anchor.report_count }
+    public fun anchor_timestamp(anchor: &AggregationAnchor): u64 { anchor.timestamp }
+    public fun anchor_zoom_level(anchor: &AggregationAnchor): u8 { anchor.zoom_level }
 
     // ═══════════════════════════════════════════════
     // IntelParams constructor
