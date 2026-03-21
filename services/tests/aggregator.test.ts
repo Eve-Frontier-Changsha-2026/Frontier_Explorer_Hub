@@ -5,6 +5,7 @@ import {
   makeCellKey,
   aggregateHeatmap,
   getHeatmapData,
+  computeAggregationAnchor,
 } from '../src/aggregator/pipeline.js';
 import { ActivityTracker } from '../src/eve-eyes/activity-tracker.js';
 
@@ -191,5 +192,82 @@ describe('ActivityTracker.getLatestActivity', () => {
     const result = ActivityTracker.getLatestActivity(db);
     expect(result!.defenseIndex).toBe(9.9);
     expect(result!.activePlayers).toBe(99);
+  });
+});
+
+describe('Aggregation Anchor', () => {
+  let db: Database.Database;
+
+  beforeEach(() => {
+    db = getTestDb();
+  });
+
+  it('returns null when heatmap_cache is empty', () => {
+    const hash = computeAggregationAnchor(db, Date.now());
+    expect(hash).toBeNull();
+    const anchors = db.prepare('SELECT * FROM aggregation_anchors').all();
+    expect(anchors.length).toBe(0);
+  });
+
+  it('produces a 64-char hex SHA-256 hash after aggregation', () => {
+    insertIntel(db, { intelId: 'h1', reporter: 'alice' });
+    insertIntel(db, { intelId: 'h2', reporter: 'bob' });
+    insertIntel(db, { intelId: 'h3', reporter: 'charlie' });
+    aggregateHeatmap(db, 3);
+
+    const anchors = db.prepare('SELECT * FROM aggregation_anchors').all() as Array<{
+      merkle_root: string;
+      report_count: number;
+      zoom_level: number;
+    }>;
+    expect(anchors.length).toBe(1);
+    expect(anchors[0]!.merkle_root).toMatch(/^[0-9a-f]{64}$/);
+    expect(anchors[0]!.report_count).toBe(3);
+    expect(anchors[0]!.zoom_level).toBe(0);
+  });
+
+  it('is deterministic — same data yields same hash', () => {
+    insertIntel(db, { intelId: 'j1', reporter: 'alice', severity: 5, timestamp: 1000, expiry: Date.now() + 3_600_000 });
+    insertIntel(db, { intelId: 'j2', reporter: 'bob', severity: 5, timestamp: 1000, expiry: Date.now() + 3_600_000 });
+    insertIntel(db, { intelId: 'j3', reporter: 'charlie', severity: 5, timestamp: 1000, expiry: Date.now() + 3_600_000 });
+    aggregateHeatmap(db, 3);
+
+    const anchor1 = db.prepare('SELECT merkle_root FROM aggregation_anchors ORDER BY id DESC LIMIT 1').get() as { merkle_root: string };
+
+    // Run aggregation again — same data, should get same hash
+    aggregateHeatmap(db, 3);
+
+    const anchor2 = db.prepare('SELECT merkle_root FROM aggregation_anchors ORDER BY id DESC LIMIT 1').get() as { merkle_root: string };
+    expect(anchor1.merkle_root).toBe(anchor2.merkle_root);
+  });
+
+  it('different data yields different hash', () => {
+    insertIntel(db, { intelId: 'k1', reporter: 'alice' });
+    insertIntel(db, { intelId: 'k2', reporter: 'bob' });
+    insertIntel(db, { intelId: 'k3', reporter: 'charlie' });
+    aggregateHeatmap(db, 3);
+
+    const hash1 = db.prepare('SELECT merkle_root FROM aggregation_anchors ORDER BY id DESC LIMIT 1').get() as { merkle_root: string };
+
+    // Add more data
+    insertIntel(db, { intelId: 'k4', reporter: 'dave', severity: 9 });
+    aggregateHeatmap(db, 3);
+
+    const hash2 = db.prepare('SELECT merkle_root FROM aggregation_anchors ORDER BY id DESC LIMIT 1').get() as { merkle_root: string };
+    expect(hash1.merkle_root).not.toBe(hash2.merkle_root);
+  });
+
+  it('aggregateHeatmap automatically creates anchor', () => {
+    // Verify no anchors before
+    expect(db.prepare('SELECT COUNT(*) as c FROM aggregation_anchors').get()).toEqual({ c: 0 });
+
+    insertIntel(db, { intelId: 'm1', reporter: 'alice' });
+    insertIntel(db, { intelId: 'm2', reporter: 'bob' });
+    insertIntel(db, { intelId: 'm3', reporter: 'charlie' });
+    aggregateHeatmap(db, 3);
+
+    // Verify anchor was created by aggregateHeatmap (not just computeAggregationAnchor)
+    const count = db.prepare('SELECT COUNT(*) as c FROM aggregation_anchors').get() as { c: number };
+    expect(count.c).toBe(1);
   });
 });

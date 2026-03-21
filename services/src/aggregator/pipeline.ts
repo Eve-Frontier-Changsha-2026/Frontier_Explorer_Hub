@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import type Database from 'better-sqlite3';
 import type {
   AggregatedCell,
@@ -170,6 +171,56 @@ export function aggregateHeatmap(db: Database.Database, kThreshold: number): voi
   });
 
   upsertAll();
+
+  // 5. Compute aggregation anchor (SHA-256 of sorted cell data)
+  computeAggregationAnchor(db, now);
+}
+
+/**
+ * Compute SHA-256 hash of all heatmap_cache rows (sorted by cell_key)
+ * and insert into aggregation_anchors table. This hash can later be
+ * published on-chain via AggregationAnchor for verifiable aggregation.
+ */
+export function computeAggregationAnchor(db: Database.Database, timestamp: number): string | null {
+  const rows = db
+    .prepare(
+      `SELECT cell_key, zoom_level, total_reports, reporter_count, suppressed,
+              by_type_json, avg_severity, latest_timestamp
+       FROM heatmap_cache
+       ORDER BY cell_key`,
+    )
+    .all() as Array<{
+    cell_key: string;
+    zoom_level: number;
+    total_reports: number;
+    reporter_count: number;
+    suppressed: number;
+    by_type_json: string | null;
+    avg_severity: number | null;
+    latest_timestamp: number;
+  }>;
+
+  if (rows.length === 0) return null;
+
+  const hash = createHash('sha256');
+  for (const r of rows) {
+    hash.update(
+      `${r.cell_key}|${r.zoom_level}|${r.total_reports}|${r.reporter_count}|` +
+      `${r.suppressed}|${r.by_type_json ?? ''}|${r.avg_severity ?? 0}|${r.latest_timestamp}\n`,
+    );
+  }
+  const merkleRoot = hash.digest('hex');
+
+  const reportCount = rows.reduce((sum, r) => sum + r.total_reports, 0);
+  // Use min zoom_level from rows (anchor covers all zoom levels present)
+  const zoomLevel = Math.min(...rows.map((r) => r.zoom_level));
+
+  db.prepare(
+    `INSERT INTO aggregation_anchors (merkle_root, report_count, zoom_level, timestamp)
+     VALUES (?, ?, ?, ?)`,
+  ).run(merkleRoot, reportCount, zoomLevel, timestamp);
+
+  return merkleRoot;
 }
 
 /**
