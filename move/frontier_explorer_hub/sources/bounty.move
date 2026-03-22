@@ -4,8 +4,11 @@
 /// Only wraps operations with Explorer Hub domain logic:
 /// - create_intel_bounty: escrow creation + IntelBountyMeta
 /// - verify_and_approve: intel match validation + approval
+/// - submit_intel_proof / resubmit_intel_proof: intel validation at proof entry gate
+///   (prevents auto_approve_proof bypass — see spec for attack path)
 ///
-/// For claim, reward, cancel, expire, abandon — call bounty_escrow
+/// For claim, reward, cancel, expire, abandon, reject_proof, dispute_rejection,
+/// resolve_dispute, auto_approve_proof, set_review_period — call bounty_escrow
 /// entry functions directly (no domain logic needed).
 module frontier_explorer_hub::bounty {
     use std::string::String;
@@ -81,7 +84,7 @@ module frontier_explorer_hub::bounty {
         clock: &Clock,
         ctx: &mut TxContext,
     ) {
-        let (change, bounty_id) = bounty::create_bounty<SUI>(
+        let (change, bounty_id) = bounty::create_bounty_with_id<SUI>(
             title, description, coin,
             reward_amount, required_stake, max_claims,
             deadline, grace_period, cleanup_reward_bps,
@@ -142,6 +145,45 @@ module frontier_explorer_hub::bounty {
             hunter,
             intel_id: object::id(intel),
         });
+    }
+
+    // ═══════════════════════════════════════════════
+    // Proof Submission (intel-validated entry gate)
+    // ═══════════════════════════════════════════════
+
+    /// Submit proof of intel bounty completion.
+    /// Validates intel matches bounty criteria before delegating to bounty_escrow.
+    /// This is a security gate: auto_approve_proof bypasses verify_and_approve,
+    /// so intel validation MUST happen here at the entry point.
+    /// Uses ctx.sender() as hunter (hunter is the tx sender for proof submission).
+    public fun submit_intel_proof(
+        bounty_obj: &mut Bounty<SUI>,
+        meta: &IntelBountyMeta,
+        intel: &intel::IntelReport,
+        proof_url: String,
+        proof_description: String,
+        clock: &Clock,
+        ctx: &mut TxContext,
+    ) {
+        assert!(meta.bounty_id == object::id(bounty_obj), EMetaBountyMismatch);
+        validate_intel_match(meta, intel, ctx.sender());
+        bounty::submit_proof(bounty_obj, proof_url, proof_description, clock, ctx);
+    }
+
+    /// Resubmit proof after rejection. Same intel validation as submit_intel_proof.
+    /// bounty_escrow enforces proof.status == proof_rejected and has_resubmitted == false.
+    public fun resubmit_intel_proof(
+        bounty_obj: &mut Bounty<SUI>,
+        meta: &IntelBountyMeta,
+        intel: &intel::IntelReport,
+        proof_url: String,
+        proof_description: String,
+        clock: &Clock,
+        ctx: &mut TxContext,
+    ) {
+        assert!(meta.bounty_id == object::id(bounty_obj), EMetaBountyMismatch);
+        validate_intel_match(meta, intel, ctx.sender());
+        bounty::resubmit_proof(bounty_obj, proof_url, proof_description, clock, ctx);
     }
 
     // ═══════════════════════════════════════════════
