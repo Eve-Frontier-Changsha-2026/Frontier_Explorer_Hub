@@ -14,6 +14,8 @@ export interface UIState {
   modalData: unknown;
   toasts: Toast[];
   pendingTx: string | null;
+  sidebarCollapsed: boolean;
+  toggleSidebar: () => void;
   toggleIntelPanel: () => void;
   toggleFilterPanel: () => void;
   openModal: (name: string, data?: unknown) => void;
@@ -32,6 +34,8 @@ export const useUIStore = create<UIState>((set) => ({
   modalData: null,
   toasts: [],
   pendingTx: null,
+  sidebarCollapsed: false,
+  toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
   toggleIntelPanel: () => set((s) => ({ intelPanelOpen: !s.intelPanelOpen })),
   toggleFilterPanel: () => set((s) => ({ filterPanelOpen: !s.filterPanelOpen })),
   openModal: (name, data) => set({ activeModal: name, modalData: data ?? null }),

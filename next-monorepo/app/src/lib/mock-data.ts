@@ -42,15 +42,6 @@ export const timelineEvents = [
   { id: "EV-4", title: "Ancient Dark hash signature repeated", age: "2d", detail: "Signal spacing matches pre-collapse archives." }
 ];
 
-export const intelFeed = [
-  { id: "INT-71001", system: 30000020, note: "Jammer activity near Citadel-3", risk: "CRITICAL" as RiskLevel, ts: "04:33" },
-  { id: "INT-71002", system: 30000077, note: "Escort request from refugee convoy", risk: "HIGH" as RiskLevel, ts: "04:16" },
-  { id: "INT-71003", system: 30003123, note: "Wreck field with unstable reactor", risk: "HIGH" as RiskLevel, ts: "04:03" },
-  { id: "INT-71004", system: 30007801, note: "Ore lane opens for 40 minutes", risk: "MEDIUM" as RiskLevel, ts: "03:49" },
-  { id: "INT-71005", system: 30011011, note: "Relay beacon restored", risk: "LOW" as RiskLevel, ts: "03:34" },
-  { id: "INT-71006", system: 30015444, note: "Unknown frigate cluster sighted", risk: "HIGH" as RiskLevel, ts: "03:19" }
-];
-
 export const plugins = [
   { id: "trace", label: "Trace Matrix", effect: "+24% route prediction", description: "Pre-maps ambush vectors from hostile drift signatures." },
   { id: "auction", label: "Salvage Exchange", effect: "+18% wreck monetization", description: "Turns confirmed wreck intel into dynamic bounty packages." },
@@ -58,7 +49,3 @@ export const plugins = [
   { id: "relay", label: "Signal Forensics", effect: "+31% anomalous ping capture", description: "Identifies repeated encoded relay patterns." }
 ];
 
-export const subscriptionPlans = [
-  { id: "free", title: "Free", price: "0 SUI", highlights: ["Zoom Level 0-1", "Delayed intel refresh", "Basic summary only"] },
-  { id: "premium", title: "Premium", price: "30 SUI / 30d", highlights: ["Zoom Level 0-2", "10s live refresh", "Full type/severity breakdown"] }
-];
