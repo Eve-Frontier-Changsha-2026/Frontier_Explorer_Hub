@@ -1,139 +1,138 @@
-import { ShellFrame } from "./shell-frame";
-import { headlines, timelineEvents, intelFeed } from "@/lib/mock-data";
-import { riskClass } from "@/lib/risk-class";
+"use client";
+
+import { PageHeader } from "@/components/PageHeader";
+import { Panel } from "@/components/ui/Panel";
+import { RiskBadge } from "@/components/ui/RiskBadge";
+import { useDashboard } from "@/hooks/use-dashboard";
+import { headlines, timelineEvents } from "@/lib/mock-data";
 
 export default function HomePage() {
+  const { feedItems, stats, regionSummary, isLoading } = useDashboard();
   const breaking = headlines[0];
 
   return (
-    <ShellFrame
-      title="REAL-TIME FRONTIER INTEL DASHBOARD"
-      subtitle="Operational monitor for conflict routes, signal anomalies, population drift, and bounty response."
-    >
-      <div className="dashboard">
-        <section className="column">
-          <article className="panel breaking">
-            <div className="panel-title">
-              <h2>Breaking</h2>
-              <span className={riskClass(breaking.risk)}>{breaking.risk}</span>
-            </div>
-            <h2>{breaking.title}</h2>
-            <p>{breaking.summary}</p>
-            <div className="meta-row">
-              <span>{breaking.id}</span>
-              <span>{breaking.category}</span>
-              <span>{breaking.ts}</span>
-            </div>
-          </article>
+    <>
+      <PageHeader
+        title="REAL-TIME FRONTIER INTEL DASHBOARD"
+        subtitle="Operational monitor for conflict routes, signal anomalies, population drift, and bounty response."
+        metrics={[
+          { label: "Reports", value: String(stats.totalReports) },
+          { label: "Active Alerts", value: String(stats.alertCount) },
+          { label: "Active Regions", value: String(stats.activeRegions) },
+        ]}
+      />
 
-          <div className="brief-grid">
-            <article className="panel">
-              <div className="panel-title">
-                <h2>Daily Briefing</h2>
-                <span>AI Summary</span>
-              </div>
-              <p>
-                Frontier pressure is concentrated on jump lanes and refinery belts. Recommended playbook: escort
-                convoy traffic, prioritize relay diagnostics, and keep rapid-response bounty teams near reactor-live
-                wreck zones.
+      <div className="mt-3 grid grid-cols-[minmax(0,1.6fr)_minmax(320px,0.95fr)] gap-3 max-lg:grid-cols-1">
+        {/* Main Column */}
+        <div className="grid gap-3">
+          {/* Breaking */}
+          <Panel title="Breaking" badge={breaking.risk}>
+            <h2 className="mt-2 text-base leading-snug">{breaking.title}</h2>
+            <p className="mt-2 text-[0.74rem] text-eve-muted/80 leading-relaxed">{breaking.summary}</p>
+            <div className="mt-2 flex gap-1.5 flex-wrap">
+              <span className="border border-eve-panel-border text-eve-muted text-[0.63rem] px-1.5 py-0.5">{breaking.id}</span>
+              <span className="border border-eve-panel-border text-eve-muted text-[0.63rem] px-1.5 py-0.5">{breaking.category}</span>
+              <span className="border border-eve-panel-border text-eve-muted text-[0.63rem] px-1.5 py-0.5">{breaking.ts}</span>
+            </div>
+          </Panel>
+
+          {/* Headlines + Briefing */}
+          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] gap-3 max-lg:grid-cols-1">
+            <Panel title="Daily Briefing" badge="AI Summary">
+              <p className="mt-2 text-[0.73rem] text-eve-muted/80 leading-relaxed">
+                Frontier pressure is concentrated on jump lanes and refinery belts. Recommended playbook: escort convoy traffic, prioritize relay diagnostics, and keep rapid-response bounty teams near reactor-live wreck zones.
               </p>
-            </article>
+            </Panel>
 
-            <article className="panel">
-              <div className="panel-title">
-                <h2>Headlines</h2>
-                <span>{headlines.length} entries</span>
-              </div>
-              <div className="list scroll">
+            <Panel title="Headlines" badge={`${headlines.length} entries`}>
+              <div className="mt-2 grid gap-2 max-h-80 overflow-y-auto">
                 {headlines.map((item) => (
-                  <article key={item.id} className="item">
-                    <div className="panel-title">
-                      <strong>{item.title}</strong>
-                      <span className={riskClass(item.risk)}>{item.risk}</span>
+                  <div key={item.id} className="border border-eve-panel-border/40 bg-[rgba(8,11,16,0.84)] p-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <strong className="text-xs">{item.title}</strong>
+                      <RiskBadge risk={item.risk} />
                     </div>
-                    <div className="meta-row">
-                      <span>{item.id}</span>
-                      <span>{item.category}</span>
-                      <span>{item.ts}</span>
+                    <div className="mt-1.5 flex gap-1.5 flex-wrap">
+                      <span className="border border-eve-panel-border text-eve-muted text-[0.63rem] px-1 py-0.5">{item.id}</span>
+                      <span className="border border-eve-panel-border text-eve-muted text-[0.63rem] px-1 py-0.5">{item.category}</span>
+                      <span className="border border-eve-panel-border text-eve-muted text-[0.63rem] px-1 py-0.5">{item.ts}</span>
                     </div>
-                  </article>
+                  </div>
                 ))}
               </div>
-            </article>
+            </Panel>
           </div>
 
-          <article className="panel">
-            <div className="panel-title">
-              <h2>Events Timeline</h2>
-              <span>Top Recent</span>
-            </div>
-            <div className="list">
+          {/* Timeline */}
+          <Panel title="Events Timeline" badge="Top Recent">
+            <div className="mt-2 grid gap-2">
               {timelineEvents.map((event) => (
-                <article key={event.id} className="item">
-                  <div className="panel-title">
-                    <strong>{event.title}</strong>
-                    <span>{event.age}</span>
+                <div key={event.id} className="border border-eve-panel-border/40 bg-[rgba(8,11,16,0.84)] p-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <strong className="text-xs">{event.title}</strong>
+                    <span className="text-[0.66rem] text-eve-muted">{event.age}</span>
                   </div>
-                  <p>{event.detail}</p>
-                </article>
+                  <p className="mt-1 text-[0.73rem] text-eve-muted/80">{event.detail}</p>
+                </div>
               ))}
             </div>
-          </article>
-        </section>
+          </Panel>
+        </div>
 
-        <aside className="side">
-          <article className="panel">
-            <div className="panel-title">
-              <h2>Conflict Map</h2>
-              <span>ef-map</span>
-            </div>
-            <div className="efmap-wrap">
+        {/* Sidebar Column */}
+        <div className="grid gap-3 content-start">
+          {/* Map Embed */}
+          <Panel title="Conflict Map" badge="ef-map">
+            <div className="mt-2 border border-eve-panel-border bg-[rgba(4,7,11,0.9)] p-1">
               <iframe
-                className="efmap-frame"
+                className="w-full min-h-[300px] border-0 block"
                 src="https://ef-map.com/embed?embed=1"
                 title="EVE Frontier map"
                 loading="lazy"
                 referrerPolicy="strict-origin-when-cross-origin"
               />
             </div>
-          </article>
+          </Panel>
 
-          <article className="panel">
-            <div className="panel-title">
-              <h2>Live Intel Feed</h2>
-              <span>{intelFeed.length} records</span>
-            </div>
-            <div className="list scroll">
-              {intelFeed.map((item) => (
-                <article key={item.id} className="feed-item">
-                  <div className="panel-title">
-                    <strong>{item.id}</strong>
-                    <span className={riskClass(item.risk)}>{item.risk}</span>
+          {/* Live Intel Feed */}
+          <Panel title="Live Intel Feed" badge={`${feedItems.length} records`}>
+            {isLoading && <p className="mt-2 text-[0.73rem] text-eve-muted/80">Loading feed...</p>}
+            <div className="mt-2 grid gap-2 max-h-80 overflow-y-auto">
+              {feedItems.map((item) => (
+                <div key={item.id} className="border border-eve-panel-border/40 bg-[rgba(8,11,16,0.84)] p-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <strong className="text-xs">{item.id}</strong>
+                    <RiskBadge risk={item.risk} />
                   </div>
-                  <p>{item.note}</p>
-                  <div className="meta-row">
-                    <span>SYS-{item.system}</span>
-                    <span>{item.ts} UTC</span>
+                  <p className="mt-1 text-[0.73rem] text-eve-muted/80">{item.note}</p>
+                  <div className="mt-1.5 flex gap-1.5 flex-wrap">
+                    <span className="border border-eve-panel-border text-eve-muted text-[0.63rem] px-1 py-0.5">SYS-{item.system}</span>
+                    <span className="border border-eve-panel-border text-eve-muted text-[0.63rem] px-1 py-0.5">{item.ts} UTC</span>
                   </div>
-                </article>
+                </div>
               ))}
             </div>
-          </article>
+          </Panel>
 
-          <article className="panel">
-            <div className="panel-title">
-              <h2>Activity</h2>
-              <span>7d</span>
+          {/* Activity Stats */}
+          <Panel title="Activity" badge="live">
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              <div className="border border-eve-panel-border/40 bg-[rgba(8,11,16,0.84)] p-2">
+                <strong className="block text-sm">{stats.totalReports}</strong>
+                <p className="text-[0.64rem] text-eve-muted">Total Reports</p>
+              </div>
+              <div className="border border-eve-panel-border/40 bg-[rgba(8,11,16,0.84)] p-2">
+                <strong className="block text-sm">{stats.alertCount}</strong>
+                <p className="text-[0.64rem] text-eve-muted">Active Alerts</p>
+              </div>
+              <div className="border border-eve-panel-border/40 bg-[rgba(8,11,16,0.84)] p-2">
+                <strong className="block text-sm">{regionSummary?.activeBounties ?? 0}</strong>
+                <p className="text-[0.64rem] text-eve-muted">Bounties</p>
+              </div>
             </div>
-            <div className="grid-4">
-              <article className="stat-card"><strong>182</strong><p>News Volume</p></article>
-              <article className="stat-card"><strong>57</strong><p>Signal Alerts</p></article>
-              <article className="stat-card"><strong>61%</strong><p>Route Stability</p></article>
-              <article className="stat-card"><strong>88%</strong><p>Comms Availability</p></article>
-            </div>
-          </article>
-        </aside>
+          </Panel>
+        </div>
       </div>
-    </ShellFrame>
+    </>
   );
 }

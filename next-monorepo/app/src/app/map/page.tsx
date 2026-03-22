@@ -1,99 +1,155 @@
 "use client";
 
 import { useState } from "react";
+import { PageHeader } from "@/components/PageHeader";
+import { Panel } from "@/components/ui/Panel";
+import { RiskBadge } from "@/components/ui/RiskBadge";
 import { useHeatmap } from "@/hooks/use-heatmap";
-import { useMapViewport } from "@/hooks/use-map-viewport";
 import { useMapStore } from "@/stores/map-store";
-import { intelFeed } from "@/lib/mock-data";
-import { riskClass } from "@/lib/risk-class";
-import { ShellFrame } from "../shell-frame";
+import { useDashboard } from "@/hooks/use-dashboard";
+
+type MapTab = "ef-map" | "heatmap";
 
 export default function MapPage() {
   const { cells, effectiveZoom, isZoomLimited, isLoading } = useHeatmap();
-  const { onViewportChange } = useMapViewport();
+  const { feedItems } = useDashboard();
   const setZoomLevel = useMapStore((s) => s.setZoomLevel);
   const zoomLevel = useMapStore((s) => s.zoomLevel);
+  const [tab, setTab] = useState<MapTab>("ef-map");
   const [selected, setSelected] = useState<string | null>(null);
 
   return (
-    <ShellFrame
-      title="TACTICAL CONFLICT MAP"
-      subtitle="Map control surface with tier-aware zoom behavior and live intel stream."
-    >
-      <div className="page-grid">
-        <section className="column">
-          <article className="panel">
-            <div className="panel-title">
-              <h2>Map Controls</h2>
-              <span>Zoom {effectiveZoom}</span>
-            </div>
-            <div className="actions">
-              <button className="btn" onClick={() => setZoomLevel(zoomLevel - 1)}>
-                Zoom Out
-              </button>
-              <button className="btn" onClick={() => setZoomLevel(zoomLevel + 1)}>
-                Zoom In
+    <>
+      <PageHeader
+        title="TACTICAL CONFLICT MAP"
+        subtitle="Map control surface with tier-aware zoom behavior and live intel stream."
+        metrics={[
+          { label: "Zoom Level", value: String(effectiveZoom) },
+          { label: "Visible Cells", value: String(cells.length) },
+          { label: "Loading", value: isLoading ? "Yes" : "No" },
+        ]}
+      />
+
+      <div className="mt-3 grid grid-cols-[minmax(0,1.6fr)_minmax(320px,0.95fr)] gap-3 max-lg:grid-cols-1">
+        {/* Main Column */}
+        <div className="grid gap-3">
+          {/* Map Controls */}
+          <Panel title="Map Controls" badge={`Zoom ${effectiveZoom}`}>
+            <div className="mt-2 flex gap-2 flex-wrap">
+              <button
+                className={`border px-3 py-2 text-xs uppercase tracking-wide cursor-pointer ${
+                  tab === "ef-map"
+                    ? "border-eve-gold/60 text-eve-gold bg-[rgba(28,21,16,0.6)]"
+                    : "border-eve-panel-border text-eve-muted bg-[rgba(12,16,24,0.95)] hover:text-eve-text"
+                }`}
+                onClick={() => setTab("ef-map")}
+              >
+                Conflict Map
               </button>
               <button
-                className="btn"
-                onClick={() => onViewportChange({ longitude: 0, latitude: 0, zoom: 7, pitch: 30, bearing: 12 })}
+                className={`border px-3 py-2 text-xs uppercase tracking-wide cursor-pointer ${
+                  tab === "heatmap"
+                    ? "border-eve-gold/60 text-eve-gold bg-[rgba(28,21,16,0.6)]"
+                    : "border-eve-panel-border text-eve-muted bg-[rgba(12,16,24,0.95)] hover:text-eve-text"
+                }`}
+                onClick={() => setTab("heatmap")}
               >
-                Simulate Camera
+                Intel Heatmap
+              </button>
+              <span className="border-l border-eve-panel-border mx-1" />
+              <button
+                className="border border-eve-panel-border bg-[rgba(12,16,24,0.95)] text-eve-muted hover:text-eve-text px-3 py-2 text-xs uppercase tracking-wide cursor-pointer"
+                onClick={() => setZoomLevel(zoomLevel - 1)}
+              >
+                Zoom Out
+              </button>
+              <button
+                className="border border-eve-panel-border bg-[rgba(12,16,24,0.95)] text-eve-muted hover:text-eve-text px-3 py-2 text-xs uppercase tracking-wide cursor-pointer"
+                onClick={() => setZoomLevel(zoomLevel + 1)}
+              >
+                Zoom In
               </button>
             </div>
-            <p className="hint">Loading: {String(isLoading)} | Cells available: {cells.length}</p>
-            {isZoomLimited && <p className="hint">Current account tier limits deeper zoom.</p>}
-          </article>
+            {isZoomLimited && (
+              <p className="mt-2 text-[0.73rem] text-eve-warn animate-flicker">
+                Current tier limits deeper zoom. Upgrade to Premium for full depth.
+              </p>
+            )}
+          </Panel>
 
-          <article className="panel">
-            <div className="panel-title">
-              <h2>Conflict Map</h2>
-              <span>External Embed</span>
-            </div>
-            <div className="efmap-wrap">
-              <iframe
-                className="efmap-frame"
-                src="https://ef-map.com/embed?embed=1"
-                title="EVE Frontier map"
-                loading="lazy"
-                referrerPolicy="strict-origin-when-cross-origin"
-              />
-            </div>
-          </article>
-        </section>
-
-        <aside className="side">
-          <article className="panel">
-            <div className="panel-title">
-              <h2>Selected Intel</h2>
-              <span>{selected ?? "none"}</span>
-            </div>
-            <p className="hint">Click any feed item to mark a target for panel focus.</p>
-          </article>
-
-          <article className="panel">
-            <div className="panel-title">
-              <h2>Live Feed</h2>
-              <span>{intelFeed.length}</span>
-            </div>
-            <div className="list scroll">
-              {intelFeed.map((item) => (
-                <button key={item.id} className="feed-item" onClick={() => setSelected(item.id)}>
-                  <div className="panel-title">
-                    <strong>{item.id}</strong>
-                    <span className={riskClass(item.risk)}>{item.risk}</span>
+          {/* Map View */}
+          <Panel title={tab === "ef-map" ? "Conflict Map" : "Intel Heatmap"} badge={tab === "ef-map" ? "External Embed" : `${cells.length} cells`}>
+            {tab === "ef-map" ? (
+              <div className="mt-2 border border-eve-panel-border bg-[rgba(4,7,11,0.9)] p-1">
+                <iframe
+                  className="w-full min-h-[400px] border-0 block"
+                  src="https://ef-map.com/embed?embed=1"
+                  title="EVE Frontier map"
+                  loading="lazy"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                />
+              </div>
+            ) : (
+              <div className="mt-2 border border-eve-panel-border bg-[rgba(4,7,11,0.9)] p-1 min-h-[400px] bg-eve-stars relative">
+                {isLoading ? (
+                  <p className="text-[0.73rem] text-eve-muted p-4">Loading heatmap data...</p>
+                ) : cells.length === 0 ? (
+                  <p className="text-[0.73rem] text-eve-muted p-4">No heatmap data available. Submit intel to populate.</p>
+                ) : (
+                  <div className="p-4">
+                    <p className="text-[0.73rem] text-eve-muted mb-2">
+                      deck.gl HeatmapLayer renders here. {cells.length} cells loaded at zoom {effectiveZoom}.
+                    </p>
+                    <div className="grid grid-cols-4 gap-2">
+                      {cells.slice(0, 12).map((cell, i) => (
+                        <div
+                          key={i}
+                          className="border border-eve-panel-border/40 bg-[rgba(8,11,16,0.6)] p-1.5 text-[0.6rem] text-eve-muted cursor-pointer hover:border-eve-glow"
+                          onClick={() => setSelected(`${cell.cell.regionId}-${i}`)}
+                        >
+                          <strong className="text-eve-cold block">R-{cell.cell.regionId}</strong>
+                          <span>{cell.totalReports} reports</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <p>{item.note}</p>
-                  <div className="meta-row">
-                    <span>SYS-{item.system}</span>
-                    <span>{item.ts} UTC</span>
+                )}
+              </div>
+            )}
+          </Panel>
+        </div>
+
+        {/* Sidebar Column */}
+        <div className="grid gap-3 content-start">
+          <Panel title="Selected Intel" badge={selected ?? "none"}>
+            <p className="mt-2 text-[0.73rem] text-eve-muted/80">
+              {selected ? `Viewing cell ${selected}` : "Click a cell or feed item to inspect."}
+            </p>
+          </Panel>
+
+          <Panel title="Live Feed" badge={String(feedItems.length)}>
+            <div className="mt-2 grid gap-2 max-h-80 overflow-y-auto">
+              {feedItems.map((item) => (
+                <button
+                  key={item.id}
+                  className="border border-eve-panel-border/40 bg-[rgba(8,11,16,0.84)] p-2 text-left w-full cursor-pointer hover:border-eve-glow/40 transition-colors"
+                  onClick={() => setSelected(item.id)}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <strong className="text-xs">{item.id}</strong>
+                    <RiskBadge risk={item.risk} />
+                  </div>
+                  <p className="mt-1 text-[0.73rem] text-eve-muted/80">{item.note}</p>
+                  <div className="mt-1.5 flex gap-1.5">
+                    <span className="border border-eve-panel-border text-eve-muted text-[0.63rem] px-1 py-0.5">SYS-{item.system}</span>
+                    <span className="border border-eve-panel-border text-eve-muted text-[0.63rem] px-1 py-0.5">{item.ts} UTC</span>
                   </div>
                 </button>
               ))}
             </div>
-          </article>
-        </aside>
+          </Panel>
+        </div>
       </div>
-    </ShellFrame>
+    </>
   );
 }
