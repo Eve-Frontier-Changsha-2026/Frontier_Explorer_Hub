@@ -5,7 +5,8 @@ export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://loca
 export const SHARED_OBJECTS = {
   subscriptionConfig: process.env.NEXT_PUBLIC_SUBSCRIPTION_CONFIG_ID ?? "0x0",
   pricingTable: process.env.NEXT_PUBLIC_PRICING_TABLE_ID ?? "0x0",
-  pluginRegistry: process.env.NEXT_PUBLIC_PLUGIN_REGISTRY_ID ?? "0x0"
+  pluginRegistry: process.env.NEXT_PUBLIC_PLUGIN_REGISTRY_ID ?? "0x0",
+  marketConfig: process.env.NEXT_PUBLIC_MARKET_CONFIG_ID ?? "0x0",
 } as const;
 
 export const INTEL_TYPES = {

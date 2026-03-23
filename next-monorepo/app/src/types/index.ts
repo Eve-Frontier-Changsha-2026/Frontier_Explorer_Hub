@@ -75,6 +75,40 @@ export interface PluginManifest {
   category: string;
 }
 
+export interface IntelListing {
+  id: string;
+  seller: string;
+  intelId: string;
+  intelType: number;
+  regionId: number;
+  listingType: number;
+  price: number;
+  maxBuyers: number;
+  soldCount: number;
+  expiry: number;
+  createdAt: number;
+  active: boolean;
+}
+
+export interface MarketReceipt {
+  id: string;
+  buyer: string;
+  listingId: string;
+  intelId: string;
+  purchasedAt: number;
+  pricePaid: number;
+}
+
+export interface SellerReputation {
+  address: string;
+  score: number;
+  totalSales: number;
+  repeatBuyerRate: number;
+  guildName?: string;
+  survivalDays?: number;
+  onChainAge: number;
+}
+
 export type Tier = "free" | "premium";
 
 export interface MapViewport {
