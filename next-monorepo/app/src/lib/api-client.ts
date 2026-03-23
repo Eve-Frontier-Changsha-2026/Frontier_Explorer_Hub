@@ -1,5 +1,5 @@
 import { API_BASE_URL } from "./constants";
-import type { AggregatedCell, IntelReport, BountyRequest, SubscriptionStatus } from "@/types";
+import type { AggregatedCell, IntelReport, BountyRequest, SubscriptionStatus, IntelListing, MarketReceipt, SellerReputation } from "@/types";
 
 let jwtToken: string | null = null;
 
@@ -59,4 +59,33 @@ export function getSubscriptionStatus() {
 
 export function getActiveBounties() {
   return apiFetch<{ bounties: BountyRequest[] }>("/api/bounties/active");
+}
+
+export function getMarketListings(params?: {
+  region?: number;
+  type?: number;
+  sort?: string;
+}): Promise<{ listings: IntelListing[] }> {
+  const query = new URLSearchParams();
+  if (params?.region != null) query.set("region", String(params.region));
+  if (params?.type != null) query.set("type", String(params.type));
+  if (params?.sort) query.set("sort", params.sort);
+  const qs = query.toString();
+  return apiFetch(`/api/market/listings${qs ? `?${qs}` : ""}`);
+}
+
+export function getMarketListing(id: string): Promise<{ listing: IntelListing; reputation: SellerReputation }> {
+  return apiFetch(`/api/market/listings/${id}`);
+}
+
+export function getMyPurchases(): Promise<{ purchases: MarketReceipt[] }> {
+  return apiFetch("/api/market/purchases");
+}
+
+export function getMySales(): Promise<{ listings: IntelListing[] }> {
+  return apiFetch("/api/market/sales");
+}
+
+export function getReputation(address: string): Promise<SellerReputation> {
+  return apiFetch(`/api/reputation/${address}`);
 }
