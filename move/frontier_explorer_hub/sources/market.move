@@ -162,11 +162,161 @@ module frontier_explorer_hub::market {
     }
 
     // ═══════════════════════════════════════════════
-    // Core functions — placeholder (Task 3)
+    // Core functions
     // ═══════════════════════════════════════════════
 
-    // list_intel, purchase_intel, delist_intel, expire_listing, update_price
-    // will be added in Task 3
+    entry fun list_intel(
+        intel: &intel::IntelReport,
+        price: u64,
+        max_buyers: u64,
+        expiry: u64,
+        encrypted_payload: vector<u8>,
+        config: &MarketConfig,
+        clock: &Clock,
+        ctx: &mut TxContext,
+    ) {
+        // Validations
+        assert!(ctx.sender() == intel::reporter(intel), ENotReporter);
+        assert!(clock.timestamp_ms() < intel::expiry(intel), EIntelExpired);
+        assert!(expiry > clock.timestamp_ms(), EListingExpiryInPast);
+        assert!(encrypted_payload.length() <= admin::max_market_payload_size(), EPayloadTooLarge);
+        assert!(price >= config.min_price, EPriceTooLow);
+        assert!(max_buyers <= config.max_buyers_cap, EMaxBuyersExceeded);
+
+        let location = intel::location(intel);
+        let listing = IntelListing {
+            id: object::new(ctx),
+            seller: ctx.sender(),
+            intel_id: object::id(intel),
+            intel_type: intel::intel_type(intel),
+            region_id: intel::region_id(&location),
+            listing_type: LISTING_TYPE_FIXED,
+            price,
+            max_buyers,
+            sold_count: 0,
+            encrypted_payload,
+            expiry,
+            created_at: clock.timestamp_ms(),
+            active: true,
+            buyers: vec_set::empty(),
+        };
+
+        event::emit(ListingCreatedEvent {
+            listing_id: object::id(&listing),
+            seller: ctx.sender(),
+            intel_id: object::id(intel),
+            intel_type: intel::intel_type(intel),
+            region_id: intel::region_id(&location),
+            price,
+            max_buyers,
+            expiry,
+        });
+
+        transfer::share_object(listing);
+    }
+
+    entry fun purchase_intel(
+        listing: &mut IntelListing,
+        payment: &mut Coin<SUI>,
+        config: &mut MarketConfig,
+        clock: &Clock,
+        ctx: &mut TxContext,
+    ) {
+        assert!(listing.active, EListingNotActive);
+        assert!(clock.timestamp_ms() < listing.expiry, EListingNotActive);
+        assert!(listing.sold_count < listing.max_buyers, ESoldOut);
+        assert!(ctx.sender() != listing.seller, ESelfPurchase);
+        assert!(!listing.buyers.contains(&ctx.sender()), EAlreadyPurchased);
+        assert!(payment.value() >= listing.price, EInsufficientPayment);
+
+        // Split price from payment
+        let mut price_coin = payment.split(listing.price, ctx);
+
+        // Calculate shares
+        let platform_fee = listing.price * config.platform_fee_bps / 10000;
+        let seller_share = listing.price - platform_fee;
+
+        // Transfer seller share
+        let seller_coin = price_coin.split(seller_share, ctx);
+        transfer::public_transfer(seller_coin, listing.seller);
+
+        // Deposit platform fee to treasury
+        balance::join(&mut config.treasury, coin::into_balance(price_coin));
+
+        // Update listing state
+        listing.sold_count = listing.sold_count + 1;
+        listing.buyers.insert(ctx.sender());
+
+        // Mint receipt
+        let receipt = MarketReceipt {
+            id: object::new(ctx),
+            buyer: ctx.sender(),
+            listing_id: object::id(listing),
+            intel_id: listing.intel_id,
+            purchased_at: clock.timestamp_ms(),
+            price_paid: listing.price,
+        };
+
+        event::emit(IntelPurchasedEvent {
+            listing_id: object::id(listing),
+            buyer: ctx.sender(),
+            intel_id: listing.intel_id,
+            price_paid: listing.price,
+            seller_share,
+            platform_fee,
+            sold_count: listing.sold_count,
+        });
+
+        transfer::transfer(receipt, ctx.sender());
+    }
+
+    entry fun delist_intel(
+        listing: &mut IntelListing,
+        ctx: &TxContext,
+    ) {
+        assert!(ctx.sender() == listing.seller, ENotSeller);
+        listing.active = false;
+
+        event::emit(ListingDelistedEvent {
+            listing_id: object::id(listing),
+            seller: listing.seller,
+            sold_count: listing.sold_count,
+        });
+    }
+
+    entry fun expire_listing(
+        listing: &mut IntelListing,
+        clock: &Clock,
+    ) {
+        assert!(clock.timestamp_ms() >= listing.expiry, EListingNotExpired);
+        listing.active = false;
+
+        event::emit(ListingExpiredEvent {
+            listing_id: object::id(listing),
+            sold_count: listing.sold_count,
+        });
+    }
+
+    entry fun update_price(
+        listing: &mut IntelListing,
+        new_price: u64,
+        config: &MarketConfig,
+        ctx: &TxContext,
+    ) {
+        assert!(ctx.sender() == listing.seller, ENotSeller);
+        assert!(listing.active, EListingNotActive);
+        assert!(listing.sold_count == 0, EHasBuyers);
+        assert!(new_price >= config.min_price, EPriceTooLow);
+
+        let old_price = listing.price;
+        listing.price = new_price;
+
+        event::emit(PriceUpdatedEvent {
+            listing_id: object::id(listing),
+            old_price,
+            new_price,
+        });
+    }
 
     // ═══════════════════════════════════════════════
     // Seal policy — placeholder (Task 4)
