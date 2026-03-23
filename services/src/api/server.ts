@@ -42,7 +42,7 @@ export function createApp(opts: CreateAppOptions): express.Express {
   app.use('/api', createHeatmapRouter(db));
   app.use('/api', createIntelRouter(db));
   app.use('/api', createSubscriptionRouter(db));
-  app.use('/api', createBountiesRouter());
+  app.use('/api', createBountiesRouter(db, suiClient));
   app.use('/api', createRegionRouter(db));
 
   // Character route — requires eve-eyes + sui clients
