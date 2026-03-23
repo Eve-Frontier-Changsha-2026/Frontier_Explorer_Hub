@@ -69,6 +69,16 @@ module frontier_explorer_hub::admin {
     const MAX_BATCH_SIZE: u64 = 20;
 
     // ═══════════════════════════════════════════════
+    // Market defaults
+    // ═══════════════════════════════════════════════
+
+    const DEFAULT_MARKET_FEE_BPS: u64 = 250;          // 2.5% platform fee
+    const DEFAULT_MARKET_MIN_PRICE: u64 = 10_000_000;  // 0.01 SUI
+    const DEFAULT_MARKET_MAX_BUYERS: u64 = 100;
+    const MAX_MARKET_FEE_BPS: u64 = 5000;              // 50% ceiling
+    const MAX_MARKET_PAYLOAD_SIZE: u64 = 4096;          // 4KB
+
+    // ═══════════════════════════════════════════════
     // Error codes
     // ═══════════════════════════════════════════════
 
@@ -140,6 +150,16 @@ module frontier_explorer_hub::admin {
     // ═══════════════════════════════════════════════
 
     public fun max_batch_size(): u64 { MAX_BATCH_SIZE }
+
+    // ═══════════════════════════════════════════════
+    // Public accessor functions — market
+    // ═══════════════════════════════════════════════
+
+    public fun default_market_fee_bps(): u64 { DEFAULT_MARKET_FEE_BPS }
+    public fun default_market_min_price(): u64 { DEFAULT_MARKET_MIN_PRICE }
+    public fun default_market_max_buyers(): u64 { DEFAULT_MARKET_MAX_BUYERS }
+    public fun max_market_fee_bps(): u64 { MAX_MARKET_FEE_BPS }
+    public fun max_market_payload_size(): u64 { MAX_MARKET_PAYLOAD_SIZE }
 
     // ═══════════════════════════════════════════════
     // Public accessor functions — error codes
