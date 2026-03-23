@@ -54,6 +54,43 @@ export function initSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_unlock_intel
       ON unlock_receipts(intel_id);
 
+    -- ── Bounty proof/dispute ─────────────────────────────────────
+
+    CREATE TABLE IF NOT EXISTS bounties (
+      bounty_id          TEXT PRIMARY KEY,
+      meta_id            TEXT NOT NULL,
+      creator            TEXT NOT NULL,
+      region_id          INTEGER NOT NULL,
+      sector_x           INTEGER NOT NULL,
+      sector_y           INTEGER NOT NULL,
+      sector_z           INTEGER NOT NULL,
+      intel_types_wanted TEXT NOT NULL,
+      reward_amount      INTEGER NOT NULL,
+      deadline           INTEGER NOT NULL,
+      status             INTEGER NOT NULL DEFAULT 0,
+      submission_count   INTEGER NOT NULL DEFAULT 0,
+      created_at         INTEGER NOT NULL,
+      updated_at         INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_bounty_creator
+      ON bounties(creator);
+    CREATE INDEX IF NOT EXISTS idx_bounty_status_deadline
+      ON bounties(status, deadline);
+
+    CREATE TABLE IF NOT EXISTS bounty_events (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      bounty_id   TEXT NOT NULL,
+      event_type  TEXT NOT NULL,
+      hunter      TEXT NOT NULL,
+      actor       TEXT,
+      detail      TEXT,
+      timestamp   INTEGER NOT NULL,
+      tx_digest   TEXT NOT NULL,
+      FOREIGN KEY (bounty_id) REFERENCES bounties(bounty_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_bounty_events_timeline
+      ON bounty_events(bounty_id, timestamp ASC);
+
     -- ── Indexer state ──────────────────────────────────────────
 
     CREATE TABLE IF NOT EXISTS event_cursor (
@@ -64,6 +101,13 @@ export function initSchema(db: Database.Database): void {
     );
     INSERT OR IGNORE INTO event_cursor (id, cursor_tx, cursor_event, updated_at)
       VALUES (1, NULL, NULL, unixepoch() * 1000);
+
+    CREATE TABLE IF NOT EXISTS event_cursors (
+      package_key  TEXT PRIMARY KEY,
+      cursor_tx    TEXT,
+      cursor_event INTEGER,
+      updated_at   INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
+    );
 
     -- ── Aggregation ────────────────────────────────────────────
 

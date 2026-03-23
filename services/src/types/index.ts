@@ -181,6 +181,74 @@ export interface IntelUnlockedEvent {
   reporterShare: number;
 }
 
+// ── Bounty event types (from Move events) ────────────────────
+
+export interface IntelBountyCreatedEvent {
+  bounty_id: string;
+  meta_id: string;
+  creator: string;
+  target_region: {
+    region_id: number;
+    sector_x: number;
+    sector_y: number;
+    sector_z: number;
+  };
+  intel_types_wanted: number[];
+}
+
+export interface ProofSubmittedEvent {
+  bounty_id: string;
+  hunter: string;
+  proof_url: string;
+  submitted_at: string; // u64 as string from JSON
+}
+
+export interface ProofRejectedEvent {
+  bounty_id: string;
+  hunter: string;
+  verifier: string;
+  reason: string;
+  rejected_at: string;
+}
+
+export interface ProofResubmittedEvent {
+  bounty_id: string;
+  hunter: string;
+  proof_url: string;
+  resubmitted_at: string;
+}
+
+export interface DisputeRaisedEvent {
+  bounty_id: string;
+  hunter: string;
+  reason: string;
+  disputed_at: string;
+}
+
+export interface DisputeResolvedEvent {
+  bounty_id: string;
+  hunter: string;
+  resolved_by: string;
+  approved: boolean;
+  resolved_at: string;
+}
+
+export interface ProofAutoApprovedEvent {
+  bounty_id: string;
+  hunter: string;
+  approved_at: string;
+}
+
+// Bounty status codes
+export const BOUNTY_STATUS = {
+  OPEN: 0,
+  CLAIMED: 1,
+  PROOF_SUBMITTED: 2,
+  PROOF_REJECTED: 3,
+  DISPUTED: 4,
+  COMPLETED: 5,
+} as const;
+
 // ── API auth ──────────────────────────────────────────────────
 
 export interface AuthPayload {

@@ -10,6 +10,7 @@ export const config = {
   // Sui RPC
   suiRpcUrl: requireEnv('SUI_RPC_URL', 'https://fullnode.testnet.sui.io:443'),
   packageId: requireEnv('PACKAGE_ID', '0x0'),
+  bountyEscrowPackageId: requireEnv('BOUNTY_ESCROW_PACKAGE_ID', '0x0'),
   adminCapId: process.env['ADMIN_CAP_ID'] ?? '',
 
   // EVE EYES
