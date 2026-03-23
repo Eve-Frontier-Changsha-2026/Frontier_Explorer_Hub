@@ -1,0 +1,17 @@
+[     778ms] [ERROR] Error loading map data: TypeError: network error @ https://ef-map.com/assets/index-B-N8Ab73.js:5378
+[    1496ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3001/api/heatmap/0:0
+[    2514ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3001/api/heatmap/0:0
+[    4536ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3001/api/heatmap/0:0
+[   26166ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516:0
+[   64558ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3001/api/heatmap/0:0
+[   65582ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3001/api/heatmap/0:0
+[   67603ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3001/api/heatmap/0:0
+[  127640ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3001/api/heatmap/0:0
+[  128661ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://ef-map.com/api/usage-event:0
+[  128661ms] [WARNING] [usage] some events rejected (400). @ https://ef-map.com/assets/index-B-N8Ab73.js:4472
+[  128662ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3001/api/heatmap/0:0
+[  130684ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3001/api/heatmap/0:0
+[  135035ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://ef-map.com/api/subscription/check:0
+[  190752ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3001/api/heatmap/0:0
+[  191768ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3001/api/heatmap/0:0
+[  193790ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3001/api/heatmap/0:0

@@ -17,7 +17,7 @@ manifest_digest = "7AFB66695545775FBFBB2D3078ADFD084244D5002392E837FDE21D9EA1C6D
 deps = { MoveStdlib = "MoveStdlib" }
 
 [pinned.testnet.bounty_escrow]
-source = { local = "../../../../../Bounty_Escrow_Protocol/bounty_escrow" }
+source = { local = "../../../Bounty_Escrow_Protocol/bounty_escrow" }
 use_environment = "testnet"
 manifest_digest = "0532D72C4F42A4472D331C54E2F8FB1595A305815D58568D26C6F8A4AC9BBFCE"
 deps = { Sui = "Sui" }
@@ -25,5 +25,5 @@ deps = { Sui = "Sui" }
 [pinned.testnet.frontier_explorer_hub]
 source = { root = true }
 use_environment = "testnet"
-manifest_digest = "A485E3A2C236255DBCC9C7023B821B743C587B92FF3B5AEFC7527B1A1015C652"
+manifest_digest = "12B38EB854974019764F809CC719DD1EF5E9701B8CFF62824F37CBC265C20F6B"
 deps = { Sui = "Sui", bounty_escrow = "bounty_escrow" }

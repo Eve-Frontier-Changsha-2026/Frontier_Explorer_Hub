@@ -52,7 +52,20 @@
       "Bash(/usr/bin/curl -s -o /dev/null -w \"%{http_code}\" \"https://eve-eyes.d0v.xyz/api/jumps\" -H 'x-api-key: eve_ak_DMj-PCQK-d_oNgetgjICgb8PGxFhUvF6N7zHiOiV2cQ')",
       "Bash(/usr/bin/curl -s -o /dev/null -w \"%{http_code}\" \"https://eve-eyes.d0v.xyz/api/systems\" -H 'x-api-key: eve_ak_DMj-PCQK-d_oNgetgjICgb8PGxFhUvF6N7zHiOiV2cQ')",
       "Bash(/usr/bin/curl -s \"https://eve-eyes.d0v.xyz/api/codex\" -H 'x-api-key: eve_ak_DMj-PCQK-d_oNgetgjICgb8PGxFhUvF6N7zHiOiV2cQ')",
-      "Bash(grep -h \"^module \" /Users/ramonliao/Documents/Code/Project/Web3/Hackathon/2026_HoH_SUI_HackerHouse_Changsha/EVE_Frontier/build/projects/Frontier_Explorer_Hub/.worktrees/plan-a/move/frontier_explorer_hub/sources/*.move)"
+      "Bash(grep -h \"^module \" /Users/ramonliao/Documents/Code/Project/Web3/Hackathon/2026_HoH_SUI_HackerHouse_Changsha/EVE_Frontier/build/projects/Frontier_Explorer_Hub/.worktrees/plan-a/move/frontier_explorer_hub/sources/*.move)",
+      "Bash(git pull:*)",
+      "Bash(git checkout:*)",
+      "Bash(git merge:*)",
+      "Bash(bash /Users/ramonliao/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.5/scripts/start-server.sh --project-dir /Users/ramonliao/Documents/Code/Project/Web3/Hackathon/2026_HoH_SUI_HackerHouse_Changsha/EVE_Frontier/build/projects/Frontier_Explorer_Hub)",
+      "Bash(bash /Users/ramonliao/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.5/skills/brainstorming/scripts/start-server.sh --project-dir /Users/ramonliao/Documents/Code/Project/Web3/Hackathon/2026_HoH_SUI_HackerHouse_Changsha/EVE_Frontier/build/projects/Frontier_Explorer_Hub)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:55865)",
+      "Bash(bash /Users/ramonliao/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.5/skills/brainstorming/scripts/stop-server.sh /Users/ramonliao/Documents/Code/Project/Web3/Hackathon/2026_HoH_SUI_HackerHouse_Changsha/EVE_Frontier/build/projects/Frontier_Explorer_Hub/.superpowers/brainstorm/96854-1774146165)",
+      "Bash(WK=/Users/ramonliao/Documents/Code/Project/Web3/Hackathon/2026_HoH_SUI_HackerHouse_Changsha/EVE_Frontier/build/projects/Frontier_Explorer_Hub/.worktrees/plan-c-ui-redesign)",
+      "Read(//Users/ramonliao/Documents/Code/Project/Web3/Hackathon/2026_HoH_SUI_HackerHouse_Changsha/EVE_Frontier/build/projects/Frontier_Explorer_Hub/.worktrees/plan-c-ui-redesign/$WK/next-monorepo/app/node_modules/**)",
+      "Bash(git rm:*)",
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "mcp__plugin_playwright_playwright__browser_take_screenshot",
+      "Bash(wc:*)"
     ]
   },
   "enabledPlugins": {

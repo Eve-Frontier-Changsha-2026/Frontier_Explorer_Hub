@@ -4,7 +4,7 @@ edition = "2024"
 
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/testnet" }
-bounty_escrow = { local = "../../../../../Bounty_Escrow_Protocol/bounty_escrow" }
+bounty_escrow = { local = "../../../Bounty_Escrow_Protocol/bounty_escrow" }
 
 [addresses]
 frontier_explorer_hub = "0x0"

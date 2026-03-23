@@ -1,0 +1,9 @@
+[    9349ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516:0
+[   11760ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://www.googletagmanager.com/gtag/js?id=G-5GZ19G1PNR:0
+[   11908ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://www.clarity.ms/tag/v1hvgmek7i:0
+[   32713ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:38765/overlay/state:0
+[   34186ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:38765/overlay/state:0
+[   41723ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:38765/overlay/state:0
+[   41744ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:38765/overlay/state:0
+[  113426ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://ef-map.com/api/subscription/check:0
+[  248174ms] [WARNING] Lit is in dev mode. Not recommended for production! See https://lit.dev/msg/dev-mode for more information. @ http://localhost:5174/@vite/client:509
