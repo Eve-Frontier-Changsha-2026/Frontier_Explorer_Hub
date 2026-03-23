@@ -319,10 +319,23 @@ module frontier_explorer_hub::market {
     }
 
     // ═══════════════════════════════════════════════
-    // Seal policy — placeholder (Task 4)
+    // Seal policy
     // ═══════════════════════════════════════════════
 
-    // seal_approve will be added in Task 4
+    /// Seal key server calls this to verify decryption access.
+    /// id = [intel_id bytes + nonce]. Namespace must match receipt's intel_id.
+    entry fun seal_approve(
+        id: vector<u8>,
+        receipt: &MarketReceipt,
+    ) {
+        let namespace = object::id_to_bytes(&receipt.intel_id);
+        assert!(id.length() >= namespace.length(), EInvalidSealId);
+        let mut i = 0;
+        while (i < namespace.length()) {
+            assert!(namespace[i] == id[i], EInvalidSealId);
+            i = i + 1;
+        };
+    }
 
     // ═══════════════════════════════════════════════
     // Accessor functions

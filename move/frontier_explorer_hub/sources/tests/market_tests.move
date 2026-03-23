@@ -582,4 +582,184 @@ module frontier_explorer_hub::market_tests {
         clock::destroy_for_testing(clock);
         scenario.end();
     }
+
+    // ═══════════════════════════════════════════════
+    // seal_approve tests
+    // ═══════════════════════════════════════════════
+
+    #[test]
+    fun test_seal_approve_valid_receipt() {
+        let mut scenario = ts::begin(BUYER);
+        let clock = clock::create_for_testing(scenario.ctx());
+
+        let intel_id = object::id_from_address(@0xCAFE);
+        let listing_id = object::id_from_address(@0xBEEF);
+
+        let receipt = market::create_receipt_for_testing(
+            BUYER, listing_id, intel_id, 100_000_000,
+            &clock, scenario.ctx(),
+        );
+
+        // id = intel_id bytes + nonce
+        let mut id = object::id_to_bytes(&intel_id);
+        id.push_back(0u8); // nonce byte
+
+        market::seal_approve(id, &receipt);
+
+        market::destroy_receipt_for_testing(receipt);
+        clock::destroy_for_testing(clock);
+        scenario.end();
+    }
+
+    #[test]
+    #[expected_failure(abort_code = market::EInvalidSealId)]
+    fun test_seal_approve_wrong_intel_id() {
+        let mut scenario = ts::begin(BUYER);
+        let clock = clock::create_for_testing(scenario.ctx());
+
+        let intel_id = object::id_from_address(@0xCAFE);
+        let wrong_intel_id = object::id_from_address(@0xDEAD);
+        let listing_id = object::id_from_address(@0xBEEF);
+
+        let receipt = market::create_receipt_for_testing(
+            BUYER, listing_id, intel_id, 100_000_000,
+            &clock, scenario.ctx(),
+        );
+
+        // id = WRONG intel_id bytes
+        let id = object::id_to_bytes(&wrong_intel_id);
+        market::seal_approve(id, &receipt);
+
+        market::destroy_receipt_for_testing(receipt);
+        clock::destroy_for_testing(clock);
+        scenario.end();
+    }
+
+    #[test]
+    #[expected_failure(abort_code = market::EInvalidSealId)]
+    fun test_seal_approve_id_too_short() {
+        let mut scenario = ts::begin(BUYER);
+        let clock = clock::create_for_testing(scenario.ctx());
+
+        let receipt = market::create_receipt_for_testing(
+            BUYER,
+            object::id_from_address(@0xBEEF),
+            object::id_from_address(@0xCAFE),
+            100_000_000,
+            &clock, scenario.ctx(),
+        );
+
+        // id too short
+        market::seal_approve(vector[0u8, 1u8], &receipt);
+
+        market::destroy_receipt_for_testing(receipt);
+        clock::destroy_for_testing(clock);
+        scenario.end();
+    }
+
+    // ═══════════════════════════════════════════════
+    // Monkey tests (extreme edge cases)
+    // ═══════════════════════════════════════════════
+
+    #[test]
+    fun test_monkey_purchase_splits_correctly() {
+        // Verify exact fee split with specific amounts
+        let mut scenario = ts::begin(SELLER);
+        let mut clock = clock::create_for_testing(scenario.ctx());
+        clock.increment_for_testing(1000);
+
+        let intel_report = intel::create_intel_for_testing(
+            SELLER, 0, 5, 1, 10, 20, 30, 1,
+            10_000_000, &clock, scenario.ctx(),
+        );
+        let mut config = market::create_market_config_for_testing(scenario.ctx());
+        // price = 1 SUI = 1_000_000_000 MIST
+        // fee = 2.5% = 25_000_000
+        // seller gets = 975_000_000
+        let mut listing = market::create_listing_for_testing(
+            SELLER, object::id(&intel_report), 0, 1,
+            1_000_000_000, 5,
+            clock.timestamp_ms() + 86400_000,
+            &clock, scenario.ctx(),
+        );
+
+        scenario.next_tx(BUYER);
+        let mut payment = coin::mint_for_testing<sui::sui::SUI>(2_000_000_000, scenario.ctx());
+
+        market::purchase_intel(
+            &mut listing, &mut payment, &mut config, &clock, scenario.ctx(),
+        );
+
+        // Verify treasury got exactly 25_000_000
+        assert!(market::treasury_value(&config) == 25_000_000);
+        // Verify buyer payment was reduced by exactly 1 SUI
+        assert!(payment.value() == 1_000_000_000);
+
+        coin::burn_for_testing(payment);
+        intel::destroy_intel_for_testing(intel_report);
+        market::destroy_listing_for_testing(listing);
+        market::destroy_market_config_for_testing(config);
+        clock::destroy_for_testing(clock);
+        scenario.end();
+    }
+
+    #[test]
+    #[expected_failure(abort_code = market::EListingNotActive)]
+    fun test_monkey_purchase_after_delist() {
+        let mut scenario = ts::begin(SELLER);
+        let mut clock = clock::create_for_testing(scenario.ctx());
+        clock.increment_for_testing(1000);
+
+        let mut config = market::create_market_config_for_testing(scenario.ctx());
+        let mut listing = market::create_listing_for_testing(
+            SELLER, object::id_from_address(@0x1), 0, 1,
+            100_000_000, 5,
+            clock.timestamp_ms() + 86400_000,
+            &clock, scenario.ctx(),
+        );
+
+        market::delist_intel(&mut listing, scenario.ctx());
+
+        scenario.next_tx(BUYER);
+        let mut payment = coin::mint_for_testing<sui::sui::SUI>(500_000_000, scenario.ctx());
+        market::purchase_intel(
+            &mut listing, &mut payment, &mut config, &clock, scenario.ctx(),
+        );
+
+        coin::burn_for_testing(payment);
+        market::destroy_listing_for_testing(listing);
+        market::destroy_market_config_for_testing(config);
+        clock::destroy_for_testing(clock);
+        scenario.end();
+    }
+
+    #[test]
+    #[expected_failure(abort_code = market::EListingNotActive)]
+    fun test_monkey_purchase_after_expiry() {
+        let mut scenario = ts::begin(SELLER);
+        let mut clock = clock::create_for_testing(scenario.ctx());
+        clock.increment_for_testing(1000);
+
+        let mut config = market::create_market_config_for_testing(scenario.ctx());
+        let mut listing = market::create_listing_for_testing(
+            SELLER, object::id_from_address(@0x1), 0, 1,
+            100_000_000, 5,
+            clock.timestamp_ms() + 1000,
+            &clock, scenario.ctx(),
+        );
+
+        clock.increment_for_testing(2000); // past expiry
+
+        scenario.next_tx(BUYER);
+        let mut payment = coin::mint_for_testing<sui::sui::SUI>(500_000_000, scenario.ctx());
+        market::purchase_intel(
+            &mut listing, &mut payment, &mut config, &clock, scenario.ctx(),
+        );
+
+        coin::burn_for_testing(payment);
+        market::destroy_listing_for_testing(listing);
+        market::destroy_market_config_for_testing(config);
+        clock::destroy_for_testing(clock);
+        scenario.end();
+    }
 }
