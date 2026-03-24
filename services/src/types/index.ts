@@ -140,8 +140,13 @@ export interface CharacterInfo {
   address: string;
   name: string | null;
   characterObjectId: string | null;
+  profileObjectId: string | null;
+  tribeId: number | null;
+  itemId: string | null;
+  tenant: string | null;
+  description: string | null;
+  avatarUrl: string | null;
   resolvedAt: number;
-  ttl: number; // expiry timestamp
 }
 
 export interface SystemCoords {
