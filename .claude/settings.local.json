@@ -68,7 +68,8 @@
       "Bash(wc:*)",
       "Bash(find /Users/ramonliao/Documents/Code/Project/Web3/Hackathon/2026_HoH_SUI_HackerHouse_Changsha/EVE_Frontier/build/projects/Bounty_Escrow_Protocol/frontend/src -type f \\\\\\(-name *.tsx -o -name *.ts \\\\\\))",
       "mcp__plugin_playwright_playwright__browser_console_messages",
-      "Bash(curl -sL \"https://frontierexplorerhub-prd.up.railway.app/api/character/0xc7f2a70b65e96a72c707e06ce1cb67a69f0ca3825a225d8d2b700b947286ec66\")"
+      "Bash(curl -sL \"https://frontierexplorerhub-prd.up.railway.app/api/character/0xc7f2a70b65e96a72c707e06ce1cb67a69f0ca3825a225d8d2b700b947286ec66\")",
+      "Bash(find /Users/ramonliao/Documents/Code/Project/Web3/Hackathon/2026_HoH_SUI_HackerHouse_Changsha/EVE_Frontier/build/projects/Frontier_Explorer_Hub/next-monorepo/app/src/components -type f -name *.tsx)"
     ]
   },
   "enabledPlugins": {
