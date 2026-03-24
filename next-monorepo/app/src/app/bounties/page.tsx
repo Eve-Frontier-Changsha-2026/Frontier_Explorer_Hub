@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useCurrentAccount } from "@mysten/dapp-kit";
 import { PageHeader } from "@/components/PageHeader";
 import { Panel } from "@/components/ui/Panel";
 import { RiskBadge } from "@/components/ui/RiskBadge";
+import { StatusChip } from "@/components/ui/StatusChip";
 import { useBounties } from "@/hooks/use-bounties";
-import { INTEL_TYPE_LABELS } from "@/lib/constants";
+import { INTEL_TYPE_LABELS, BOUNTY_STATUS_LABELS } from "@/lib/constants";
 
 const DEADLINE_OPTIONS = [
   { label: "24h", ms: 86_400_000 },
@@ -17,7 +19,9 @@ const DEADLINE_OPTIONS = [
 
 export default function BountiesPage() {
   const account = useCurrentAccount();
-  const { bounties, isLoading, createBounty, isCreating } = useBounties();
+  const { bounties, myBounties, mySubmissions, activeTab, setActiveTab, isLoading, createBounty, isCreating } = useBounties();
+
+  const displayedBounties = activeTab === "my-bounties" ? myBounties : activeTab === "my-submissions" ? mySubmissions : bounties;
 
   const [regionId, setRegionId] = useState(0);
   const [sectorX, setSectorX] = useState(0);
@@ -139,21 +143,51 @@ export default function BountiesPage() {
         </div>
 
         <div className="grid gap-3 content-start">
-          <Panel title="Active Bounties" badge={isLoading ? "loading" : String(bounties.length)}>
+          <Panel title="Bounties" badge={isLoading ? "loading" : String(displayedBounties.length)}>
+            {/* Tab bar */}
+            <div className="mt-2 flex gap-1 border-b border-eve-panel-border/40 pb-1">
+              {(
+                [
+                  { key: "all", label: "All Active" },
+                  ...(account ? [{ key: "my-bounties", label: "My Bounties" }, { key: "my-submissions", label: "My Submissions" }] : []),
+                ] as { key: "all" | "my-bounties" | "my-submissions"; label: string }[]
+              ).map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`px-2 py-1 text-[0.66rem] uppercase tracking-wide cursor-pointer transition-colors ${
+                    activeTab === tab.key
+                      ? "text-eve-gold border-b border-eve-gold -mb-[5px]"
+                      : "text-eve-muted hover:text-eve-text"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
             {isLoading && <p className="mt-2 text-[0.73rem] text-eve-muted/80">Loading bounties...</p>}
             <div className="mt-2 grid gap-2 max-h-[500px] overflow-y-auto">
-              {!isLoading && bounties.length === 0 && (
-                <p className="text-[0.73rem] text-eve-muted/80">No active on-chain bounties.</p>
+              {!isLoading && displayedBounties.length === 0 && (
+                <p className="text-[0.73rem] text-eve-muted/80">No bounties found.</p>
               )}
-              {bounties.map((bounty, i) => (
+              {displayedBounties.map((bounty, i) => (
                 <div
                   key={bounty.id}
                   className="border border-eve-panel-border/40 bg-[rgba(8,11,16,0.84)] p-2 animate-slide-in"
                   style={{ animationDelay: `${i * 60}ms` }}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <strong className="text-xs truncate">{bounty.id.slice(0, 16)}...</strong>
-                    <RiskBadge severity={bounty.rewardAmount > 5_000_000_000 ? 8 : 4} />
+                    <Link
+                      href={`/bounties/${bounty.id}`}
+                      className="text-xs truncate font-mono text-eve-cold hover:text-eve-gold transition-colors"
+                    >
+                      {bounty.id.slice(0, 16)}...
+                    </Link>
+                    <div className="flex items-center gap-2">
+                      <StatusChip label={BOUNTY_STATUS_LABELS[bounty.status] ?? "Unknown"} active={bounty.status === 0} />
+                      <RiskBadge severity={bounty.rewardAmount > 5_000_000_000 ? 8 : 4} />
+                    </div>
                   </div>
                   <p className="mt-1 text-[0.73rem] text-eve-muted/80">
                     Reward: {(bounty.rewardAmount / 1_000_000_000).toFixed(2)} SUI
@@ -162,7 +196,7 @@ export default function BountiesPage() {
                     Types: {bounty.intelTypesWanted.map((t) => INTEL_TYPE_LABELS[t] ?? t).join(", ")}
                   </p>
                   <p className="text-[0.63rem] text-eve-muted">
-                    Submissions: {bounty.submissionCount} | Status: {bounty.status}
+                    Submissions: {bounty.submissionCount}
                   </p>
                 </div>
               ))}

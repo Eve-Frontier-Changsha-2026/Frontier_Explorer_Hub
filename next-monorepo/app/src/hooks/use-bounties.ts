@@ -1,9 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useSignAndExecuteTransaction } from "@mysten/dapp-kit";
+import { useSignAndExecuteTransaction, useCurrentAccount } from "@mysten/dapp-kit";
 import { Transaction } from "@mysten/sui/transactions";
-import { getActiveBounties } from "@/lib/api-client";
+import { getActiveBounties, getBountiesByCreator, getBountiesByHunter } from "@/lib/api-client";
 import { buildCreateBounty, buildSubmitForBounty, buildRefundExpiredBounty } from "@/lib/ptb/bounty";
 import { useUIStore } from "@/stores/ui-store";
 import { useAuth } from "./use-auth";
@@ -18,11 +19,30 @@ export function useBounties() {
   const addToast = useUIStore((s) => s.addToast);
   const setPendingTx = useUIStore((s) => s.setPendingTx);
 
+  const account = useCurrentAccount();
+  const walletAddress = account?.address ?? "";
+
+  const [activeTab, setActiveTab] = useState<"all" | "my-bounties" | "my-submissions">("all");
+
   const query = useQuery({
     queryKey: ["bounties"],
     queryFn: getActiveBounties,
     enabled: isAuthenticated,
     staleTime: 30_000
+  });
+
+  const myBountiesQuery = useQuery({
+    queryKey: ["my-bounties", walletAddress],
+    queryFn: () => getBountiesByCreator(walletAddress),
+    enabled: isAuthenticated && !!walletAddress,
+    staleTime: 30_000,
+  });
+
+  const mySubmissionsQuery = useQuery({
+    queryKey: ["my-submissions", walletAddress],
+    queryFn: () => getBountiesByHunter(walletAddress),
+    enabled: isAuthenticated && !!walletAddress,
+    staleTime: 30_000,
   });
 
   const createBounty = useMutation({
@@ -80,6 +100,10 @@ export function useBounties() {
   return {
     bounties: query.data?.bounties ?? [],
     isLoading: query.isLoading,
+    myBounties: myBountiesQuery.data?.bounties ?? [],
+    mySubmissions: mySubmissionsQuery.data?.bounties ?? [],
+    activeTab,
+    setActiveTab,
     createBounty: createBounty.mutateAsync,
     claimBounty: claimBounty.mutateAsync,
     refundBounty: refundBounty.mutateAsync,
