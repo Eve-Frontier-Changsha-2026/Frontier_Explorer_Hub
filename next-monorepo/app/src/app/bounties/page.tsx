@@ -173,16 +173,16 @@ export default function BountiesPage() {
               )}
               {displayedBounties.map((bounty, i) => (
                 <div
-                  key={bounty.id}
+                  key={bounty.bountyId}
                   className="border border-eve-panel-border/40 bg-[rgba(8,11,16,0.84)] p-2 animate-slide-in"
                   style={{ animationDelay: `${i * 60}ms` }}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <Link
-                      href={`/bounties/${bounty.id}`}
+                      href={`/bounties/${bounty.bountyId}`}
                       className="text-xs truncate font-mono text-eve-cold hover:text-eve-gold transition-colors"
                     >
-                      {bounty.id.slice(0, 16)}...
+                      {bounty.bountyId.slice(0, 16)}...
                     </Link>
                     <div className="flex items-center gap-2">
                       <StatusChip label={BOUNTY_STATUS_LABELS[bounty.status] ?? "Unknown"} active={bounty.status === 0} />

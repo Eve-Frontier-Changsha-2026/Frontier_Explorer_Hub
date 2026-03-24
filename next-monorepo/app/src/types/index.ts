@@ -44,8 +44,8 @@ export interface UnlockReceipt {
 }
 
 export interface BountyRequest {
-  id: string;
-  requester: string;
+  bountyId: string;
+  creator: string;
   targetRegion: GridCell;
   intelTypesWanted: number[];
   rewardAmount: number;

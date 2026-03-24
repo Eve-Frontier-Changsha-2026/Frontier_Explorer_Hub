@@ -97,7 +97,7 @@ export default function BountyDetailPage() {
                 </div>
                 <div>
                   <p className="text-[0.66rem] text-eve-muted">Creator</p>
-                  <p className="font-mono truncate">{bounty.requester.slice(0, 16)}...</p>
+                  <p className="font-mono truncate">{bounty.creator.slice(0, 16)}...</p>
                 </div>
                 <div>
                   <p className="text-[0.66rem] text-eve-muted">Submissions</p>

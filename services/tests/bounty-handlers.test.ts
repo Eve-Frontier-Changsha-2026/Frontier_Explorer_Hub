@@ -183,3 +183,56 @@ describe('handleProofAutoApproved', () => {
     expect(row!['status']).toBe(BOUNTY_STATUS.COMPLETED);
   });
 });
+
+describe('monkey tests', () => {
+  it('handles rapid duplicate events gracefully', () => {
+    seedBounty();
+    for (let i = 0; i < 10; i++) {
+      handleProofSubmitted(db, {
+        bounty_id: BOUNTY_ID, hunter: HUNTER,
+        proof_url: `https://proof-${i}`, submitted_at: String(1700000100 + i),
+      }, `tx-${i}`);
+    }
+    const row = getRow('bounties', 'bounty_id', BOUNTY_ID);
+    expect(row!['submission_count']).toBe(10);
+    const events = getEvents(BOUNTY_ID);
+    expect(events.length).toBe(10);
+  });
+
+  it('handles events for non-existent bounty without crashing', () => {
+    expect(() => {
+      handleProofSubmitted(db, {
+        bounty_id: '0xghost', hunter: HUNTER,
+        proof_url: 'https://x', submitted_at: '1',
+      }, 'tx');
+      handleProofRejected(db, {
+        bounty_id: '0xghost', hunter: HUNTER, verifier: VERIFIER,
+        reason: 'no', rejected_at: '1',
+      }, 'tx');
+      handleDisputeRaised(db, {
+        bounty_id: '0xghost', hunter: HUNTER,
+        reason: 'why', disputed_at: '1',
+      }, 'tx');
+    }).not.toThrow();
+  });
+
+  it('handles empty string fields', () => {
+    seedBounty();
+    handleProofSubmitted(db, {
+      bounty_id: BOUNTY_ID, hunter: HUNTER,
+      proof_url: '', submitted_at: '1700000100',
+    }, TX);
+    const events = getEvents(BOUNTY_ID);
+    expect(JSON.parse(events[0]!['detail'] as string).proofUrl).toBe('');
+  });
+
+  it('handles max u64 timestamp', () => {
+    seedBounty();
+    handleProofSubmitted(db, {
+      bounty_id: BOUNTY_ID, hunter: HUNTER,
+      proof_url: 'https://x', submitted_at: '18446744073709551615',
+    }, TX);
+    const events = getEvents(BOUNTY_ID);
+    expect(events.length).toBe(1);
+  });
+});

@@ -39,7 +39,7 @@ export function useBountyDetail(bountyId: string) {
   // Derived: role
   const role: BountyRole = (() => {
     if (!bounty || !walletAddress) return "viewer";
-    if (bounty.requester === walletAddress) return "creator";
+    if (bounty.creator === walletAddress) return "creator";
     if (bounty.events.some((e) => e.hunter === walletAddress)) return "hunter";
     return "viewer";
   })();

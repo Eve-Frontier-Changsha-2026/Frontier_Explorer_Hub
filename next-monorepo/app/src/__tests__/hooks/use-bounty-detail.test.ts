@@ -27,8 +27,8 @@ vi.mock("@/hooks/use-auth", () => ({
 vi.mock("@/lib/api-client", () => ({
   getBountyDetail: vi.fn().mockResolvedValue({
     bounty: {
-      id: "0xbounty1",
-      requester: "0xcreator",
+      bountyId: "0xbounty1",
+      creator: "0xcreator",
       targetRegion: { regionId: 1, sectorX: 0, sectorY: 0, sectorZ: 0, zoomLevel: 0 },
       intelTypesWanted: [0],
       rewardAmount: 1000,
@@ -114,7 +114,7 @@ describe("useBountyDetail", () => {
 });
 
 describe("useBountyDetail — with bounty data (useQuery returns data)", () => {
-  it("role is 'creator' when walletAddress matches requester", async () => {
+  it("role is 'creator' when walletAddress matches creator", async () => {
     // Override useQuery to return bounty data
     const { useQuery: _useQuery, ...rest } = await import("@tanstack/react-query");
     void _useQuery;
@@ -127,8 +127,8 @@ describe("useBountyDetail — with bounty data (useQuery returns data)", () => {
         return {
           data: {
             bounty: {
-              id: "0xbounty1",
-              requester: "0xcreator",
+              bountyId: "0xbounty1",
+              creator: "0xcreator",
               targetRegion: { regionId: 1, sectorX: 0, sectorY: 0, sectorZ: 0, zoomLevel: 0 },
               intelTypesWanted: [0],
               rewardAmount: 1000,
@@ -161,8 +161,8 @@ describe("useBountyDetail — with bounty data (useQuery returns data)", () => {
         return {
           data: {
             bounty: {
-              id: "0xbounty1",
-              requester: "0xother",
+              bountyId: "0xbounty1",
+              creator: "0xother",
               targetRegion: { regionId: 1, sectorX: 0, sectorY: 0, sectorZ: 0, zoomLevel: 0 },
               intelTypesWanted: [0],
               rewardAmount: 1000,
@@ -207,8 +207,8 @@ describe("useBountyDetail — with bounty data (useQuery returns data)", () => {
         return {
           data: {
             bounty: {
-              id: "0xbounty1",
-              requester: "0xcreator",
+              bountyId: "0xbounty1",
+              creator: "0xcreator",
               targetRegion: { regionId: 1, sectorX: 0, sectorY: 0, sectorZ: 0, zoomLevel: 0 },
               intelTypesWanted: [0],
               rewardAmount: 1000,
@@ -253,8 +253,8 @@ describe("useBountyDetail — with bounty data (useQuery returns data)", () => {
         return {
           data: {
             bounty: {
-              id: "0xbounty1",
-              requester: "0xother",
+              bountyId: "0xbounty1",
+              creator: "0xother",
               targetRegion: { regionId: 1, sectorX: 0, sectorY: 0, sectorZ: 0, zoomLevel: 0 },
               intelTypesWanted: [0],
               rewardAmount: 1000,
