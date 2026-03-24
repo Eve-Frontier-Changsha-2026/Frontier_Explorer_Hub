@@ -7,8 +7,15 @@ import { RiskBadge } from "@/components/ui/RiskBadge";
 import { useHeatmap } from "@/hooks/use-heatmap";
 import { useMapStore } from "@/stores/map-store";
 import { useDashboard } from "@/hooks/use-dashboard";
+import { RegionActivityPanel } from "@/components/RegionActivityPanel";
 
 type MapTab = "ef-map" | "heatmap";
+
+function parseRegionId(selected: string | null): number | null {
+  if (!selected) return null;
+  const n = parseInt(selected.split("-")[0]!, 10);
+  return isNaN(n) ? null : n;
+}
 
 export default function MapPage() {
   const { cells, effectiveZoom, isZoomLimited, isLoading } = useHeatmap();
@@ -77,6 +84,11 @@ export default function MapPage() {
             )}
           </Panel>
 
+          {/* Region Activity Overview */}
+          <div className="border border-eve-panel-border/30 bg-eve-panel/50 p-2">
+            <RegionActivityPanel regionId={parseRegionId(selected) ?? 0} compact />
+          </div>
+
           {/* Map View */}
           <Panel title={tab === "ef-map" ? "Conflict Map" : "Intel Heatmap"} badge={tab === "ef-map" ? "External Embed" : `${cells.length} cells`}>
             {tab === "ef-map" ? (
@@ -126,6 +138,8 @@ export default function MapPage() {
               {selected ? `Viewing cell ${selected}` : "Click a cell or feed item to inspect."}
             </p>
           </Panel>
+
+          <RegionActivityPanel regionId={parseRegionId(selected)} />
 
           <Panel title="Live Feed" badge={String(feedItems.length)}>
             <div className="mt-2 grid gap-2 max-h-80 overflow-y-auto">
