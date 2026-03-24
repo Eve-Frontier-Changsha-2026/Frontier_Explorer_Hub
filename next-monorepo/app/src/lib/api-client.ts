@@ -1,5 +1,5 @@
 import { API_BASE_URL } from "./constants";
-import type { AggregatedCell, IntelReport, BountyRequest, SubscriptionStatus, IntelListing, MarketReceipt, SellerReputation } from "@/types";
+import type { AggregatedCell, IntelReport, BountyRequest, BountyDetail, SubscriptionStatus, IntelListing, MarketReceipt, SellerReputation } from "@/types";
 
 let jwtToken: string | null = null;
 
@@ -59,6 +59,18 @@ export function getSubscriptionStatus() {
 
 export function getActiveBounties() {
   return apiFetch<{ bounties: BountyRequest[] }>("/api/bounties/active");
+}
+
+export function getBountyDetail(bountyId: string) {
+  return apiFetch<{ bounty: BountyDetail }>(`/api/bounties/${bountyId}`);
+}
+
+export function getBountiesByCreator(address: string) {
+  return apiFetch<{ bounties: BountyRequest[] }>(`/api/bounties/by-creator/${address}`);
+}
+
+export function getBountiesByHunter(address: string) {
+  return apiFetch<{ bounties: BountyRequest[] }>(`/api/bounties/by-hunter/${address}`);
 }
 
 export function getMarketListings(params?: {
