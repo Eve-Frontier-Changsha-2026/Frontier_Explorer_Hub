@@ -37,7 +37,10 @@ async function main() {
   }>('./aggregator/scheduler.js');
   let scheduler: { start(): void; stop(): void } | null = null;
   if (aggMod) {
-    scheduler = new aggMod.AggregationScheduler(db);
+    scheduler = new aggMod.AggregationScheduler(db, {
+      kAnonymityThreshold: config.kAnonymityThreshold,
+      aggregationIntervalMs: config.aggregationIntervalMs,
+    });
     scheduler.start();
     console.log('[main] AggregationScheduler started');
   } else {
