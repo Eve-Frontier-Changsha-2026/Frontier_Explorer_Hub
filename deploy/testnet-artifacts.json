@@ -1,0 +1,30 @@
+{
+  "network": "testnet",
+  "chainId": "4c78adac",
+  "deployedAt": "2026-03-24",
+  "deployer": "0x1509b5fdf09296b2cf749a710e36da06f5693ccd5b2144ad643b3a895abcbc4c",
+  "packages": {
+    "frontier_explorer_hub": {
+      "packageId": "0x32817b67b1f016457cd4133f389e02795e8038d18b135949c6c3187c50de6a2e",
+      "version": 1,
+      "txDigest": "AA6GSTQhX77JSR6rcRYdnTn4dRksxMr2j7phKVCzkRCS",
+      "modules": ["access", "admin", "bounty", "intel", "market", "marketplace", "subscription"]
+    },
+    "bounty_escrow": {
+      "packageId": "0x5357556af095edf9ff7f8481d384e10266758f746b0f2aafde0805a9415f521c",
+      "originalId": "0x8222b1e623985cf9ef25d6d60f8a812c24fb0ac81f8ab6db6929bde273e6cb16",
+      "version": 4
+    }
+  },
+  "ownedObjects": {
+    "adminCap": "0x687c5098dfc974e1f7bc0b1da1b343a86f9e832e1fd9db2040552167c532e807",
+    "upgradeCap": "0xc99d48b7ca915fb750044e1c3e8255caf42eb9190e8c6c8b8d16b97ed97b17de"
+  },
+  "sharedObjects": {
+    "subscriptionConfig": "0x3aaab9b17c92dadcf6f72af6716274d77af47b8dc92cadeaf20ddd7b723a279e",
+    "pricingTable": "0x10a4fde331aa9d69468fa39b8809437a7968eb08be48324b200883f22f230789",
+    "pluginRegistry": "0xcb802a7d8cee7cea96527b45d73e8a669882291b53b0b51e169e16159b38a3d2",
+    "marketConfig": "0x25de4d8d38374d8db46e79bb26780b90890595e1884081307d4403956d83d080"
+  },
+  "initTxDigest": "Hm3vMX3VKARMHQEQCuGApN6QyeNMmppGbjZkwwPS81wC"
+}

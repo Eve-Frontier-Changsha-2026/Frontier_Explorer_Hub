@@ -48,7 +48,7 @@ export function handleBountyCreated(
   db: Database.Database,
   event: IntelBountyCreatedEvent,
   supplement: { rewardAmount: number; deadline: number },
-  txDigest: string,
+  _txDigest: string,
 ): void {
   const { insertBounty } = getStmts(db);
   const now = Date.now();

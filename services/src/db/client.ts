@@ -3,7 +3,7 @@ import { initSchema } from './schema.js';
 
 let _db: Database.Database | null = null;
 
-export function getDb(dbPath = 'explorer-hub.db'): Database.Database {
+export function getDb(dbPath = process.env['DB_PATH'] ?? 'explorer-hub.db'): Database.Database {
   if (_db) return _db;
 
   _db = new Database(dbPath);
