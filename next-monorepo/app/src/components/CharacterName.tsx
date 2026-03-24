@@ -1,6 +1,6 @@
 "use client";
 
-import { useCharacterName } from "@/hooks/use-character";
+import { useCharacter } from "@/hooks/use-character";
 
 interface CharacterNameProps {
   address: string;
@@ -20,7 +20,7 @@ export function CharacterName({
   showAddress = false,
   className = "",
 }: CharacterNameProps) {
-  const { name, isLoading } = useCharacterName(address);
+  const { data, isLoading } = useCharacter(address);
   const truncated = truncateAddr(address, truncateLength);
 
   if (isLoading) {
@@ -32,12 +32,24 @@ export function CharacterName({
     );
   }
 
-  if (name) {
+  if (data?.name) {
+    const tooltipLines: string[] = [];
+    if (data.tribeId != null) tooltipLines.push(`tribe #${data.tribeId}`);
+    if (data.tenant) tooltipLines.push(data.tenant);
+    if (data.itemId) tooltipLines.push(`item: ${data.itemId}`);
+
     return (
-      <span className={`text-eve-gold ${className}`} title={address}>
-        {name}
-        {showAddress && (
-          <span className="text-eve-muted text-[0.6rem] ml-1">({truncated})</span>
+      <span className={`relative group inline-flex items-center ${className}`}>
+        <span className="text-eve-gold cursor-default" title={address}>
+          {data.name}
+          {showAddress && (
+            <span className="text-eve-muted text-[0.6rem] ml-1">({truncated})</span>
+          )}
+        </span>
+        {tooltipLines.length > 0 && (
+          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded bg-eve-panel border border-eve-panel-border text-[0.65rem] text-eve-muted whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+            {tooltipLines.join(" · ")}
+          </span>
         )}
       </span>
     );
