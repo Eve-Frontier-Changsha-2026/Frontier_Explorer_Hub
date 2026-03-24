@@ -158,12 +158,19 @@ export function initSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_activity_window
       ON region_activity(window_end);
 
+    DROP TABLE IF EXISTS characters;
     CREATE TABLE IF NOT EXISTS characters (
       address            TEXT PRIMARY KEY,
       name               TEXT,
       character_object_id TEXT,
+      profile_object_id  TEXT,
+      tribe_id           INTEGER,
+      item_id            TEXT,
+      tenant             TEXT,
+      description        TEXT,
+      avatar_url         TEXT,
       resolved_at        INTEGER NOT NULL,
-      ttl                INTEGER NOT NULL
+      cache_ttl          INTEGER NOT NULL DEFAULT 86400000
     );
 
     CREATE TABLE IF NOT EXISTS eve_systems (

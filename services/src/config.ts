@@ -20,6 +20,10 @@ export const config = {
     'EVE_WORLD_PACKAGE_ID',
     '0xd12a70c74c1e759445d6f209b01d43d860e97fcf2ef72ccbbd00afd828043f75',
   ),
+  eveCharacterPackageId: requireEnv(
+    'EVE_CHARACTER_PACKAGE_ID',
+    '0xd12a70c74c1e759445d6f209b01d43d860e97fcf2ef72ccbbd00afd828043f75',
+  ),
 
   // API Server
   port: parseInt(process.env['PORT'] ?? '3001', 10),
