@@ -52,7 +52,9 @@ describe("EVE EYES monkey tests", () => {
 
   it("useCharacterNames handles 50 addresses without crashing", async () => {
     mockedChar.mockImplementation(async (addr) => ({
-      address: addr, name: `N-${addr}`, characterObjectId: null, resolvedAt: Date.now(),
+      address: addr, name: `N-${addr}`, characterObjectId: null,
+      profileObjectId: null, tribeId: null, itemId: null, tenant: null, description: null, avatarUrl: null,
+      resolvedAt: Date.now(),
     }));
     const addrs = Array.from({ length: 50 }, (_, i) => `0x${i.toString(16).padStart(40, "0")}`);
     const { result } = renderHook(() => useCharacterNames(addrs), { wrapper });
@@ -66,7 +68,9 @@ describe("EVE EYES monkey tests", () => {
 
   it("useCharacterNames handles all-duplicate array", async () => {
     mockedChar.mockResolvedValue({
-      address: "0xsame", name: "Same", characterObjectId: null, resolvedAt: Date.now(),
+      address: "0xsame", name: "Same", characterObjectId: null,
+      profileObjectId: null, tribeId: null, itemId: null, tenant: null, description: null, avatarUrl: null,
+      resolvedAt: Date.now(),
     });
     const addrs = Array(10).fill("0xsame");
     const { result } = renderHook(() => useCharacterNames(addrs), { wrapper });
@@ -75,6 +79,24 @@ describe("EVE EYES monkey tests", () => {
     });
     expect(result.current.size).toBe(1);
     expect(mockedChar).toHaveBeenCalledTimes(1); // dedup
+  });
+
+  it("useCharacterName handles response with all-null optional fields", async () => {
+    mockedChar.mockResolvedValue({
+      address: "0xnull",
+      name: null,
+      characterObjectId: null,
+      profileObjectId: null,
+      tribeId: null,
+      itemId: null,
+      tenant: null,
+      description: null,
+      avatarUrl: null,
+      resolvedAt: Date.now(),
+    });
+    const { result } = renderHook(() => useCharacterName("0xnull"), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.name).toBeNull();
   });
 
   it("useRegionActivity with extreme activity values", async () => {
