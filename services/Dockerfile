@@ -1,18 +1,27 @@
-FROM node:20-slim
+# Stage 1: build (needs devDependencies for @types/*)
+FROM node:20-slim AS builder
 
-# better-sqlite3 needs build tools
 RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+RUN npm ci
 
 COPY tsconfig.json ./
 COPY src ./src
 RUN npx tsc
 
-# Persistent volume mount point for SQLite
+# Stage 2: production (no devDependencies)
+FROM node:20-slim
+
+RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
+
+COPY --from=builder /app/dist ./dist
+
 RUN mkdir -p /data
 
 ENV NODE_ENV=production
