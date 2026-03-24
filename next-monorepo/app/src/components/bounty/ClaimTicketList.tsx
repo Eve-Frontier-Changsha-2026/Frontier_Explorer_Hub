@@ -1,4 +1,7 @@
+"use client";
+
 import type { ClaimTicket } from "@/types";
+import { CharacterName } from "@/components/CharacterName";
 
 interface ClaimTicketListProps {
   hunters: ClaimTicket[];
@@ -17,8 +20,8 @@ export function ClaimTicketList({ hunters, currentAddress }: ClaimTicketListProp
             key={h.hunter}
             className="flex items-center justify-between border border-eve-panel-border/40 bg-[rgba(8,11,16,0.84)] px-2 py-1.5"
           >
-            <span className="text-xs font-mono truncate max-w-[160px]">
-              {h.hunter.slice(0, 10)}...{h.hunter.slice(-6)}
+            <span className="text-xs truncate max-w-[200px]">
+              <CharacterName address={h.hunter} className="text-xs" />
               {h.hunter === currentAddress && (
                 <span className="text-eve-gold ml-1">(you)</span>
               )}

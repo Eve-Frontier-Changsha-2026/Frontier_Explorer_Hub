@@ -2,6 +2,7 @@
 
 import type { BountyEvent, ProofDetail, RejectDetail, DisputeDetail, ResolveDetail } from "@/types";
 import { CountdownTimer } from "./CountdownTimer";
+import { CharacterName } from "@/components/CharacterName";
 
 interface ProofTimelineProps {
   events: BountyEvent[];
@@ -55,8 +56,10 @@ export function ProofTimeline({ events, reviewDeadline }: ProofTimelineProps) {
               <span className="text-[0.6rem] text-eve-muted">{formatTs(ev.timestamp)}</span>
             </div>
             <p className="text-[0.66rem] text-eve-muted mt-0.5">
-              Hunter: {ev.hunter.slice(0, 10)}...{ev.hunter.slice(-6)}
-              {ev.actor && ` | Actor: ${ev.actor.slice(0, 10)}...${ev.actor.slice(-6)}`}
+              Hunter: <CharacterName address={ev.hunter} className="text-[0.66rem]" />
+              {ev.actor && (
+                <> | Actor: <CharacterName address={ev.actor} className="text-[0.66rem]" /></>
+              )}
             </p>
             {renderDetail(ev)}
             <a
