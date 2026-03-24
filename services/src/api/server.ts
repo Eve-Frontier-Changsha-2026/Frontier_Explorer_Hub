@@ -11,7 +11,6 @@ import { createBountiesRouter } from './routes/bounties.js';
 import { createRegionRouter } from './routes/region.js';
 import { createCharacterRouter } from './routes/character.js';
 import { CharacterResolver } from '../eve-eyes/character-resolver.js';
-import type { EveEyesClient } from '../eve-eyes/client.js';
 import { config } from '../config.js';
 
 // TODO: SSE endpoint — reserved for approach C upgrade
@@ -19,12 +18,11 @@ import { config } from '../config.js';
 
 export interface CreateAppOptions {
   db: Database.Database;
-  eveEyesClient?: EveEyesClient;
   suiClient?: SuiClient;
 }
 
 export function createApp(opts: CreateAppOptions): express.Express {
-  const { db, eveEyesClient, suiClient } = opts;
+  const { db, suiClient } = opts;
 
   const app = express();
 
@@ -45,9 +43,9 @@ export function createApp(opts: CreateAppOptions): express.Express {
   app.use('/api', createBountiesRouter(db, suiClient));
   app.use('/api', createRegionRouter(db));
 
-  // Character route — requires eve-eyes + sui clients
-  if (eveEyesClient && suiClient) {
-    const resolver = new CharacterResolver(db, eveEyesClient, suiClient);
+  // Character route — requires sui client
+  if (suiClient) {
+    const resolver = new CharacterResolver(db, suiClient);
     app.use('/api', createCharacterRouter(resolver));
   }
 

@@ -61,7 +61,7 @@ async function main() {
   }
 
   // Start HTTP server
-  const server = startServer({ db, eveEyesClient, suiClient });
+  const server = startServer({ db, suiClient });
 
   // Graceful shutdown
   const shutdown = () => {
