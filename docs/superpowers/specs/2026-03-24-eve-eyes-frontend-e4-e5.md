@@ -62,7 +62,11 @@ export interface RegionSummary {
 
 ### API Client
 
-Update `getRegionSummary` return type from current ad-hoc shape to `RegionSummary`.
+Update `getRegionSummary` return type to `RegionSummary`.
+
+**Migration note:** The current `api-client.ts` `getRegionSummary` returns `{ regionId, totalReports, byType, activeBounties }` which does NOT match the actual backend response. The backend already returns `{ regionId, heatmap, activity }`. The frontend type was stale. This update aligns the frontend type with the real backend response.
+
+**Impact on `useDashboard`:** `useDashboard` calls `getRegionSummary` and exposes `regionSummary.data` directly. After the type change, `useDashboard` consumers will see the new `RegionSummary` shape. Currently `useDashboard` does not destructure specific fields from regionSummary (it returns the raw `.data`), so the type change is safe — callers just get the correct shape now. Update `useDashboard`'s query key to `["regionSummary", regionId]` (already uses this) and let `useRegionActivity` reuse the same query key to avoid duplicate fetches.
 
 ### Hook: `useRegionActivity`
 
@@ -76,7 +80,7 @@ useRegionActivity(regionId: number | null) → {
 }
 ```
 
-- `queryKey: ["region-activity", regionId]`
+- `queryKey: ["regionSummary", regionId]` (shared with `useDashboard` to avoid duplicate fetches)
 - `enabled: regionId != null`
 - `refetchInterval: 5 * 60 * 1000` (match backend 5min polling)
 - `staleTime: 2 * 60 * 1000`
@@ -111,7 +115,7 @@ Visual style: follows existing `Panel` + EVE theme (border-eve-panel-border, tex
 1. **Sidebar**: Add `<RegionActivityPanel regionId={selectedRegionId} />` below "Selected Intel" panel
 2. **Overview**: Add compact `<RegionActivityPanel regionId={globalRegionId} compact />` in map controls area or above map view
 
-Region selection: extract `regionId` from selected cell state (already have `selected` state with `R-{regionId}` pattern).
+Region selection: extract `regionId` from selected cell state. Current `selected` format is `"${regionId}-${index}"` (e.g. `"42-3"`). Parse via `parseInt(selected.split('-')[0], 10)`. Consider refactoring selection state to store `{ regionId: number; index: number }` for type safety, but string parsing is acceptable for now.
 
 ---
 
@@ -124,9 +128,10 @@ Existing `GET /api/character/:address` response (from `services/src/api/routes/c
 ```ts
 {
   address: string;
-  name: string | null;      // null if unresolvable
-  characterId: string | null;
+  name: string | null;              // null if unresolvable
+  characterObjectId: string | null; // Sui object ID of character
   resolvedAt: number;
+  ttl: number;                      // expiry timestamp (ms)
 }
 ```
 
@@ -138,8 +143,9 @@ Add to `types/index.ts`:
 export interface CharacterInfo {
   address: string;
   name: string | null;
-  characterId: string | null;
+  characterObjectId: string | null;
   resolvedAt: number;
+  // ttl intentionally omitted — frontend uses staleTime config, not backend TTL
 }
 ```
 
@@ -157,6 +163,7 @@ Single address:
 useCharacterName(address: string | null) → {
   name: string | null;
   isLoading: boolean;
+  isError: boolean;  // on error, treat as unresolved (name = null fallback)
 }
 ```
 
@@ -192,7 +199,9 @@ Rendering:
 
 ### Integration Points
 
-1. **Map page Live Feed** (`app/map/page.tsx`): Replace raw `item.id` or reporter address display with `<CharacterName address={item.reporter} />`
+1. **Map page Live Feed** (`app/map/page.tsx`): Current `FeedItem` is derived from `AggregatedCell` via `cellsToFeedItems()` and does NOT carry a reporter address (only `id`, `system`, `note`, `risk`, `ts`). To integrate `CharacterName` here, we need to **skip this integration point for now** — `AggregatedCell` has `reporterCount` but not individual reporter addresses. Future: when the heatmap endpoint returns top reporter addresses per cell, we can add this. For the demo, character name display is limited to bounty detail pages.
+
+   **Alternative (if time permits):** Add a `topReporter` field to `AggregatedCell` in the heatmap aggregation pipeline, but this is out of scope for E4-E5.
 
 2. **Bounty detail — ProofTimeline**: Each timeline event's `hunter` and `actor` fields → `<CharacterName>`
 
@@ -212,6 +221,14 @@ Rendering:
 | `components/CharacterName.tsx` | New component |
 | `app/map/page.tsx` | Integrate both components |
 | `app/bounties/[id]/page.tsx` | Integrate `CharacterName` (or its sub-components) |
+
+---
+
+## Implementation Notes
+
+- All new hooks MUST have `"use client"` directive at top (Next.js App Router requirement, per existing pattern).
+- `isStale` in `useRegionActivity` is evaluated at fetch time, not reactively. It updates every 5min refetch cycle, which is sufficient for the demo. No need for a real-time timer.
+- `useCharacterName` error handling: on API error (500), the hook returns `name: null` + `isError: true`. The `CharacterName` component renders the truncated address fallback — no error UI needed.
 
 ---
 
