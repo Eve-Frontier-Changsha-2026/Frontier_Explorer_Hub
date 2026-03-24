@@ -1,5 +1,5 @@
 import { API_BASE_URL } from "./constants";
-import type { AggregatedCell, IntelReport, BountyRequest, BountyDetail, SubscriptionStatus, IntelListing, MarketReceipt, SellerReputation } from "@/types";
+import type { AggregatedCell, IntelReport, BountyRequest, BountyDetail, SubscriptionStatus, IntelListing, MarketReceipt, SellerReputation, RegionSummary, CharacterInfo } from "@/types";
 
 let jwtToken: string | null = null;
 
@@ -45,12 +45,11 @@ export function getIntel(intelId: string) {
 }
 
 export function getRegionSummary(regionId: number) {
-  return apiFetch<{
-    regionId: number;
-    totalReports: number;
-    byType: Record<number, number>;
-    activeBounties: number;
-  }>(`/api/region/${regionId}/summary`);
+  return apiFetch<RegionSummary>(`/api/region/${regionId}/summary`);
+}
+
+export function getCharacter(address: string) {
+  return apiFetch<CharacterInfo>(`/api/character/${address}`);
 }
 
 export function getSubscriptionStatus() {

@@ -126,8 +126,8 @@ export default function HomePage() {
                 <p className="text-[0.64rem] text-eve-muted">Active Alerts</p>
               </div>
               <div className="border border-eve-panel-border/40 bg-[rgba(8,11,16,0.84)] p-2">
-                <strong className="block text-sm">{regionSummary?.activeBounties ?? 0}</strong>
-                <p className="text-[0.64rem] text-eve-muted">Bounties</p>
+                <strong className="block text-sm">{regionSummary?.heatmap?.reporterCount ?? 0}</strong>
+                <p className="text-[0.64rem] text-eve-muted">Reporters</p>
               </div>
             </div>
           </Panel>

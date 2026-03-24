@@ -143,6 +143,29 @@ export interface SellerReputation {
   onChainAge: number;
 }
 
+export interface RegionActivity {
+  defenseIndex: number;
+  infraIndex: number;
+  trafficIndex: number;
+  activePlayers: number;
+  windowStart: number;
+  windowEnd: number;
+  updatedAt: number;
+}
+
+export interface RegionSummary {
+  regionId: number;
+  heatmap: { totalReports: number; reporterCount: number };
+  activity: RegionActivity | null;
+}
+
+export interface CharacterInfo {
+  address: string;
+  name: string | null;
+  characterObjectId: string | null;
+  resolvedAt: number;
+}
+
 export type Tier = "free" | "premium";
 
 export interface MapViewport {
