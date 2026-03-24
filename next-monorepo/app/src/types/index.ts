@@ -54,6 +54,40 @@ export interface BountyRequest {
   submissionCount: number;
 }
 
+export interface BountyDetail extends BountyRequest {
+  metaId: string;
+  updatedAt: number;
+  events: BountyEvent[];
+  hunters: ClaimTicket[];
+}
+
+export interface BountyEvent {
+  id: number;
+  bountyId: string;
+  eventType: 'proof_submitted' | 'proof_rejected' | 'proof_resubmitted'
+           | 'dispute_raised' | 'dispute_resolved' | 'proof_auto_approved';
+  hunter: string;
+  actor: string | null;
+  detail: ProofDetail | RejectDetail | DisputeDetail | ResolveDetail | null;
+  timestamp: number;
+  txDigest: string;
+}
+
+export interface ClaimTicket {
+  hunter: string;
+  stakeAmount: number;
+}
+
+// NOTE: proofDescription is optional because ProofSubmittedEvent/ProofResubmittedEvent
+// do NOT include proof_description — only proof_url. The description is stored on-chain
+// in the Bounty's dynamic field but not emitted in events. Timeline will show URL only.
+export interface ProofDetail { proofUrl: string; proofDescription?: string }
+export interface RejectDetail { reason: string }
+export interface DisputeDetail { reason: string }
+export interface ResolveDetail { approved: boolean }
+
+export type BountyRole = 'creator' | 'hunter' | 'viewer';
+
 export type PluginPermission =
   | "read:heatmap"
   | "read:intel"

@@ -34,3 +34,26 @@ export const TIER_LIMITS = {
 } as const;
 
 export const MIN_SUBMIT_DEPOSIT_MIST = 10_000_000;
+
+export const BOUNTY_ESCROW_PACKAGE_ID = process.env.NEXT_PUBLIC_BOUNTY_ESCROW_PACKAGE_ID ?? "0x0";
+export const SUI_TYPE = "0x2::sui::SUI";
+export const CLOCK_ID = "0x6";
+export const REVIEW_PERIOD_MS = 259_200_000; // 72 hours
+
+export const BOUNTY_STATUS = {
+  OPEN: 0,
+  CLAIMED: 1,
+  PROOF_SUBMITTED: 2,
+  PROOF_REJECTED: 3,
+  DISPUTED: 4,
+  COMPLETED: 5,
+} as const;
+
+export const BOUNTY_STATUS_LABELS: Record<number, string> = {
+  0: "Open",
+  1: "Claimed",
+  2: "Proof Submitted",
+  3: "Rejected",
+  4: "Disputed",
+  5: "Completed",
+};
