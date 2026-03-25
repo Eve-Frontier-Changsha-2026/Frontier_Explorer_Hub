@@ -40,9 +40,12 @@ export function PortalLinkList({ selectedId, onSelect }: PortalLinkListProps) {
       )}
       <div className="flex flex-col gap-1 max-h-[60vh] overflow-y-auto">
         {links.map((link, i) => (
-          <button
+          <div
             key={link.id}
+            role="button"
+            tabIndex={0}
             onClick={() => onSelect(link.id)}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onSelect(link.id); }}
             className={`group flex items-center gap-2 px-2.5 py-2 text-left w-full cursor-pointer border transition-all ${
               selectedId === link.id
                 ? "border-eve-glow bg-[rgba(14,21,31,0.84)]"
@@ -70,7 +73,7 @@ export function PortalLinkList({ selectedId, onSelect }: PortalLinkListProps) {
                 title="Delete"
               >✕</button>
             </div>
-          </button>
+          </div>
         ))}
       </div>
 

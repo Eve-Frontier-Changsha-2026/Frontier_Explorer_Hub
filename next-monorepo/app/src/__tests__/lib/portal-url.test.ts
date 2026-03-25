@@ -21,7 +21,7 @@ describe("validatePortalUrl", () => {
   it("rejects http (non-localhost)", () => {
     const r = validatePortalUrl("http://example.com");
     expect(r.valid).toBe(false);
-    expect(r.error).toContain("https");
+    if (!r.valid) expect(r.error).toContain("https");
   });
 
   it("rejects javascript: scheme", () => {
