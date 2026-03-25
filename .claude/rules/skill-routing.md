@@ -31,6 +31,26 @@
 | Passkey | `sui-passkey` |
 | 前後端整合 / TS type generation | `sui-fullstack-integration` |
 
+## Code Review Override（重要）
+
+**禁止對 Move/.move 檔案使用 `superpowers:code-reviewer`（generic reviewer）。**
+
+當觸發 code review（包含 `requesting-code-review`、`subagent-driven-development` 的 review step）時：
+
+| 審查對象 | 替代方案（按順序執行） |
+|---------|----------------------|
+| Move 合約 (.move) | 1. `move-code-quality`（Move Book 50+ 規則）→ 2. `sui-security-guard`（安全掃描）→ 3. `sui-red-team`（核心合約才需要） |
+| SUI 全端架構 | `sui-architect`（spec 驗證 + SUI best practices） |
+| 前端 dApp (SUI 整合) | `sui-frontend` review + generic reviewer 可輔助 |
+| 非 Move 的 TypeScript/NestJS | generic `superpowers:code-reviewer` 可用 |
+
+### 執行方式
+
+- **不要** dispatch `superpowers:code-reviewer` 來審 Move code — 它不懂 Move 語法、abilities、object model。
+- 用 `/sui-dev-agents:audit` 做完整安全審計。
+- Architecture review 必須用 `sui-architect` skill 驗證設計是否符合 SUI best practices（object model、shared vs owned、upgradeability）。
+- 如果 subagent-driven-development 要求 review，對 Move 部分改用上述 SUI skills 替代。
+
 ## Build & Test
 
 - Move 改動後必跑 `sui move test` 再 commit
