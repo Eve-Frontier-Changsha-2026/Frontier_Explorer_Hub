@@ -5,7 +5,7 @@ interface PageHeaderProps {
   title: string;
   subtitle: string;
   metrics?: { label: string; value: string }[];
-  variant?: "default" | "store" | "membership";
+  variant?: "default" | "store" | "membership" | "portal";
 }
 
 export function PageHeader({ title, subtitle, metrics, variant = "default" }: PageHeaderProps) {
