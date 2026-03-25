@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { path: "/bounties", label: "Bounties", icon: "M12 2a10 10 0 100 20 10 10 0 000-20zM12 6a6 6 0 100 12 6 6 0 000-12zM12 10a2 2 0 100 4 2 2 0 000-4z" },
   { path: "/subscribe", label: "Membership", icon: "M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z" },
   { path: "/store", label: "Plugin Store", icon: "M3 3h5v5H3zM10 3h5v5h-5zM17 3h5v5h-5zM3 10h5v5H3zM10 10h5v5h-5zM17 10h5v5h-5zM3 17h5v5H3zM10 17h5v5h-5zM17 17h5v5h-5z" },
+  { path: "/portal", label: "Portal", icon: "M4 4h16v16H4zM9 4v16M4 9h5" },
 ] as const;
 
 interface SidebarProps {
@@ -45,7 +46,9 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       {/* Nav Items */}
       <div className="flex-1 py-2 flex flex-col gap-0.5">
         {NAV_ITEMS.map((item) => {
-          const active = pathname === item.path;
+          const active = item.path === "/"
+            ? pathname === "/"
+            : pathname.startsWith(item.path);
           return (
             <Link
               key={item.path}

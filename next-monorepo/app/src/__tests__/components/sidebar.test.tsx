@@ -16,7 +16,7 @@ vi.mock("@/hooks/use-auth", () => ({
 }));
 
 describe("Sidebar", () => {
-  it("renders all 6 navigation items", () => {
+  it("renders all 7 navigation items", () => {
     render(<Sidebar collapsed={false} />);
     expect(screen.getByText("Dashboard")).toBeDefined();
     expect(screen.getByText("Tactical Map")).toBeDefined();
@@ -24,6 +24,7 @@ describe("Sidebar", () => {
     expect(screen.getByText("Bounties")).toBeDefined();
     expect(screen.getByText("Membership")).toBeDefined();
     expect(screen.getByText("Plugin Store")).toBeDefined();
+    expect(screen.getByText("Portal")).toBeDefined();
   });
 
   it("hides labels when collapsed", () => {
