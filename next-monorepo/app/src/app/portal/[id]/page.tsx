@@ -11,6 +11,7 @@ export default function PortalFullscreenPage() {
   const router = useRouter();
   const getLinkById = usePortalStore((s) => s.getLinkById);
   const addToast = useUIStore((s) => s.addToast);
+  const collapsed = useUIStore((s) => s.sidebarCollapsed);
   const link = getLinkById(id);
 
   useEffect(() => {
@@ -23,7 +24,9 @@ export default function PortalFullscreenPage() {
   if (!link) return null;
 
   return (
-    <div className="fixed inset-0 z-30 flex flex-col bg-eve-panel">
+    <div className={`fixed top-0 right-0 bottom-0 z-30 flex flex-col bg-eve-panel transition-all duration-200 ${
+      collapsed ? "left-14" : "left-[200px]"
+    }`}>
       <PortalFullscreenBar name={link.name} url={link.url} />
       <iframe
         src={link.url}

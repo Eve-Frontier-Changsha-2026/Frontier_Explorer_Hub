@@ -33,6 +33,9 @@ export default function PortalPage() {
       {links.length === 0 ? (
         <Panel title="Portal Links" className="mt-3">
           <PortalEmptyState />
+          <div className="mt-3">
+            <PortalLinkList selectedId={selectedId} onSelect={setSelectedId} />
+          </div>
         </Panel>
       ) : (
         <div className="mt-3 grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-3 max-lg:grid-cols-1">
