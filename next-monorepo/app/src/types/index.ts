@@ -181,3 +181,55 @@ export interface MapViewport {
   pitch: number;
   bearing: number;
 }
+
+export interface SourceMeta {
+  provider: "eve-eyes" | "utopia";
+  fetchedAt: number;
+  stale: boolean;
+}
+
+export interface KillEntry {
+  id: string;
+  killerName: string;
+  killerId: string;
+  victimName: string;
+  victimId: string;
+  lossType: string;
+  solarSystemId: number;
+  killedAt: number;
+}
+
+export interface WorldStatus {
+  players: {
+    registered: number;
+    active: number;
+    newLast24h: number;
+    sources: SourceMeta[];
+  };
+  combat: {
+    kills24h: number;
+    activeSystems: number;
+    recentKills: KillEntry[];
+    sources: SourceMeta[];
+  };
+  infrastructure: {
+    onlineAssemblies: number;
+    totalAssemblies: number;
+    infraIndex: number;
+    sources: SourceMeta[];
+  };
+  defense: {
+    defenseIndex: number;
+    sources: SourceMeta[];
+  };
+  traffic: {
+    trafficIndex: number;
+    sources: SourceMeta[];
+  };
+  factions: {
+    count: number;
+    largest: { name: string; ticker: string; members: number };
+    sources: SourceMeta[];
+  };
+  updatedAt: number;
+}

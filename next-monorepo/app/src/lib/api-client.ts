@@ -1,5 +1,5 @@
 import { API_BASE_URL } from "./constants";
-import type { AggregatedCell, IntelReport, BountyRequest, BountyDetail, SubscriptionStatus, IntelListing, MarketReceipt, SellerReputation, RegionSummary, CharacterInfo } from "@/types";
+import type { AggregatedCell, IntelReport, BountyRequest, BountyDetail, SubscriptionStatus, IntelListing, MarketReceipt, SellerReputation, RegionSummary, CharacterInfo, WorldStatus } from "@/types";
 
 let jwtToken: string | null = null;
 
@@ -99,4 +99,24 @@ export function getMySales(): Promise<{ listings: IntelListing[] }> {
 
 export function getReputation(address: string): Promise<SellerReputation> {
   return apiFetch(`/api/reputation/${address}`);
+}
+
+export function getWorldStatus() {
+  return apiFetch<WorldStatus>("/api/world/status");
+}
+
+export function getWorldCharacter(id: string) {
+  return apiFetch<unknown>(`/api/world/character/${id}`);
+}
+
+export function getWorldCharacterKills(id: string) {
+  return apiFetch<{ items: unknown[] }>(`/api/world/character/${id}/kills`);
+}
+
+export function getWorldAssembly(id: string) {
+  return apiFetch<unknown>(`/api/world/assembly/${id}`);
+}
+
+export function getWorldTribe(id: number) {
+  return apiFetch<unknown>(`/api/world/tribe/${id}`);
 }
