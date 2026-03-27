@@ -1,17 +1,25 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { ToastContainer } from "./ToastContainer";
 import { useUIStore } from "@/stores/ui-store";
+
+const CHROMELESS_ROUTES = ["/landing"];
 
 interface AppShellProps {
   children: ReactNode;
 }
 
 export function AppShell({ children }: AppShellProps) {
+  const pathname = usePathname();
   const collapsed = useUIStore((s) => s.sidebarCollapsed);
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
+
+  if (CHROMELESS_ROUTES.includes(pathname)) {
+    return <>{children}</>;
+  }
 
   return (
     <>
