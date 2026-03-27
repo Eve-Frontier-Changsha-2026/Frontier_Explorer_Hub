@@ -38,4 +38,9 @@ export const config = {
   // Rate limits
   freeRateLimit: 10,   // req/min
   premiumRateLimit: 100, // req/min
+
+  // Utopia
+  utopiaBaseUrl: requireEnv('UTOPIA_BASE_URL', 'https://utopia.evedataco.re'),
+  utopiaPollIntervalMs: parseInt(process.env['UTOPIA_POLL_INTERVAL_MS'] ?? '300000', 10),
+  worldStalenessMs: parseInt(process.env['WORLD_STALENESS_MS'] ?? '600000', 10),
 } as const;

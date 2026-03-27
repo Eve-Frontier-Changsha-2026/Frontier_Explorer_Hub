@@ -183,5 +183,64 @@ export function initSchema(db: Database.Database): void {
       created_by_tx  TEXT NOT NULL,
       created_at     INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
     );
+
+    -- ── Utopia integration ───────────────────────────────────────
+
+    CREATE TABLE IF NOT EXISTS utopia_killmails (
+      id              TEXT PRIMARY KEY,
+      killer_id       TEXT NOT NULL,
+      killer_name     TEXT NOT NULL,
+      victim_id       TEXT NOT NULL,
+      victim_name     TEXT NOT NULL,
+      reporter_id     TEXT NOT NULL,
+      reporter_name   TEXT NOT NULL,
+      loss_type       TEXT NOT NULL,
+      solar_system_id INTEGER NOT NULL,
+      killed_at       INTEGER NOT NULL,
+      shard           INTEGER NOT NULL DEFAULT 1,
+      fetched_at      INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_killmails_killed_at
+      ON utopia_killmails(killed_at);
+
+    CREATE TABLE IF NOT EXISTS utopia_characters (
+      id           TEXT PRIMARY KEY,
+      name         TEXT NOT NULL,
+      address      TEXT NOT NULL,
+      tribe_id     INTEGER,
+      tribe_name   TEXT,
+      tribe_ticker TEXT,
+      created_at   INTEGER NOT NULL,
+      fetched_at   INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS utopia_assemblies (
+      id          TEXT PRIMARY KEY,
+      state       TEXT NOT NULL,
+      owner_id    TEXT NOT NULL,
+      owner_name  TEXT NOT NULL,
+      name        TEXT,
+      type_id     INTEGER NOT NULL,
+      anchored_at INTEGER NOT NULL,
+      fetched_at  INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_utopia_assemblies_state
+      ON utopia_assemblies(state);
+
+    CREATE TABLE IF NOT EXISTS utopia_tribes (
+      id           INTEGER PRIMARY KEY,
+      name         TEXT NOT NULL,
+      name_short   TEXT NOT NULL,
+      description  TEXT,
+      member_count INTEGER NOT NULL,
+      created_at   INTEGER NOT NULL,
+      fetched_at   INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS world_status_cache (
+      id          INTEGER PRIMARY KEY DEFAULT 1,
+      status_json TEXT NOT NULL,
+      updated_at  INTEGER NOT NULL
+    );
   `);
 }

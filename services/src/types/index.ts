@@ -275,3 +275,124 @@ export interface SSEEvent {
   data: unknown;
   timestamp: number;
 }
+
+// ── Utopia types ─────────────────────────────────────────────
+
+export interface UtopiaCharacter {
+  id: string;
+  name: string;
+  address: string;
+  tribeId: number;
+  tribeName: string;
+  tribeTicker: string;
+  createdAt: number;
+}
+
+export interface UtopiaKillmail {
+  id: string;
+  killerId: string;
+  killerName: string;
+  victimId: string;
+  victimName: string;
+  reporterId: string;
+  reporterName: string;
+  lossType: string;
+  solarSystemId: number;
+  killedAt: number;
+  shard: number;
+}
+
+export interface UtopiaAssembly {
+  id: string;
+  state: string;
+  ownerId: string;
+  ownerName: string;
+  name: string;
+  typeId: number;
+  anchoredAt: number;
+}
+
+export interface UtopiaTribe {
+  id: number;
+  name: string;
+  nameShort: string;
+  description: string;
+  tribeUrl: string;
+  memberCount: number;
+  createdAt: number;
+}
+
+export interface UtopiaCharacterDetail extends UtopiaCharacter {
+  shard: number;
+  profileId: string;
+  tribeJoinedAt: number;
+}
+
+export interface UtopiaAssemblyDetail extends UtopiaAssembly {
+  pkTypeState: string;
+  shard: number;
+  locationHash: string;
+  dappURL: string;
+  description: string;
+  networkNodeId: string;
+  itemId: number;
+  assemblyType: string;
+}
+
+export interface UtopiaPaginatedResponse<T> {
+  items: T[];
+}
+
+// ── World Status (aggregated) ────────────────────────────────
+
+export interface SourceMeta {
+  provider: 'eve-eyes' | 'utopia';
+  fetchedAt: number;
+  stale: boolean;
+}
+
+export interface KillEntry {
+  id: string;
+  killerName: string;
+  killerId: string;
+  victimName: string;
+  victimId: string;
+  lossType: string;
+  solarSystemId: number;
+  killedAt: number;
+}
+
+export interface WorldStatus {
+  players: {
+    registered: number;
+    active: number;
+    newLast24h: number;
+    sources: SourceMeta[];
+  };
+  combat: {
+    kills24h: number;
+    activeSystems: number;
+    recentKills: KillEntry[];
+    sources: SourceMeta[];
+  };
+  infrastructure: {
+    onlineAssemblies: number;
+    totalAssemblies: number;
+    infraIndex: number;
+    sources: SourceMeta[];
+  };
+  defense: {
+    defenseIndex: number;
+    sources: SourceMeta[];
+  };
+  traffic: {
+    trafficIndex: number;
+    sources: SourceMeta[];
+  };
+  factions: {
+    count: number;
+    largest: { name: string; ticker: string; members: number };
+    sources: SourceMeta[];
+  };
+  updatedAt: number;
+}
