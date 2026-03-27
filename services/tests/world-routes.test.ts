@@ -86,6 +86,7 @@ describe('ID validation on proxy routes', () => {
   it('accepts valid hex id format', async () => {
     const validId = '0x' + 'a'.repeat(64);
     const res = await request(app).get(`/api/world/character/${validId}`);
+    // Validation passes (not 400), proxy may fail (502) or succeed
     expect(res.status).not.toBe(400);
-  });
+  }, 20_000);
 });
