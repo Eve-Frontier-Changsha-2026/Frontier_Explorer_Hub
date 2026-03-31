@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useWalletBridge } from "@/hooks/use-wallet-bridge";
+import { WalletSignDialog } from "./WalletSignDialog";
 
 interface PortalPreviewProps {
   url: string;
@@ -11,9 +13,12 @@ interface PortalPreviewProps {
 
 export function PortalPreview({ url, name, linkId }: PortalPreviewProps) {
   const router = useRouter();
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [iframeEl, setIframeEl] = useState<HTMLIFrameElement | null>(null);
+  const iframeRef = useCallback((node: HTMLIFrameElement | null) => { setIframeEl(node); }, []);
   const [status, setStatus] = useState<"loading" | "loaded" | "failed">("loading");
   const [retryKey, setRetryKey] = useState(0);
+
+  const { pendingSign, approvePendingSign, rejectPendingSign } = useWalletBridge(iframeEl);
 
   useEffect(() => {
     setStatus("loading");
@@ -21,18 +26,17 @@ export function PortalPreview({ url, name, linkId }: PortalPreviewProps) {
       setStatus((prev) => (prev === "loading" ? "failed" : prev));
     }, 5000);
 
-    const iframe = iframeRef.current;
     const handleLoad = () => {
       clearTimeout(timer);
       setStatus("loaded");
     };
-    iframe?.addEventListener("load", handleLoad);
+    iframeEl?.addEventListener("load", handleLoad);
 
     return () => {
       clearTimeout(timer);
-      iframe?.removeEventListener("load", handleLoad);
+      iframeEl?.removeEventListener("load", handleLoad);
     };
-  }, [url, retryKey]);
+  }, [url, retryKey, iframeEl]);
 
   const handleRetry = () => {
     setRetryKey((k) => k + 1);
@@ -82,12 +86,22 @@ export function PortalPreview({ url, name, linkId }: PortalPreviewProps) {
           key={`${url}-${retryKey}`}
           src={url}
           sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+          allow="clipboard-write"
           referrerPolicy="strict-origin-when-cross-origin"
           loading="lazy"
           className={`w-full h-full border-0 ${status === "failed" ? "hidden" : ""}`}
           title={`Preview: ${name}`}
         />
       </div>
+
+      {pendingSign && (
+        <WalletSignDialog
+          txBytes={pendingSign.txBytes}
+          siteName={name}
+          onApprove={approvePendingSign}
+          onReject={rejectPendingSign}
+        />
+      )}
     </div>
   );
 }
