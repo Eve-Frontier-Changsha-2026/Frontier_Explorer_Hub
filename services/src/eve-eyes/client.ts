@@ -171,6 +171,81 @@ export class EveEyesClient {
   ): Promise<EveEyesPaginatedResponse<EveEyesMoveCall>> {
     return this.getMoveCalls({ moduleName, senderAddress, network });
   }
+
+  // ── Killmails ──────────────────────────────────────────────
+
+  async getKillmails(
+    limit?: number,
+    status?: string,
+  ): Promise<{ items: import('../types/index.js').EveEyesKillmail[] }> {
+    return this.request('/api/indexer/killmails', { limit, status });
+  }
+
+  // ── Building Leaderboard ───────────────────────────────────
+
+  async getLeaderboard(
+    limit?: number,
+    moduleName?: import('../types/index.js').EveEyesBuildingModuleName,
+  ): Promise<import('../types/index.js').EveEyesLeaderboardResponse> {
+    return this.request('/api/v1/indexer/building-leaderboard', { limit, moduleName });
+  }
+
+  // ── Module Call Counts ─────────────────────────────────────
+
+  async getModuleCallCounts(): Promise<{ modules: import('../types/index.js').EveEyesModuleCallCount[] }> {
+    return this.request('/api/indexer/module-call-counts', {});
+  }
+
+  // ── Modules Summary ───────────────────────────────────────
+
+  async getModulesSummary(): Promise<import('../types/index.js').EveEyesModulesSummaryResponse> {
+    return this.request('/api/world/modules-summary', {});
+  }
+
+  // ── Systems ────────────────────────────────────────────────
+
+  async searchSystems(
+    query: string,
+  ): Promise<{ data: import('../types/index.js').EveEyesSystemSearchResult[] }> {
+    return this.request('/api/world/systems/search', { q: query });
+  }
+
+  async getSystemDetail(
+    id: number,
+  ): Promise<import('../types/index.js').EveEyesSystemDetail> {
+    return this.request(`/api/world/systems/${id}`, {});
+  }
+
+  // ── Route ──────────────────────────────────────────────────
+
+  async getRoute(
+    originId: number,
+    destinationId: number,
+  ): Promise<import('../types/index.js').EveEyesRouteResponse> {
+    return this.request('/api/world/route', { originId, destinationId });
+  }
+
+  // ── Transaction / Move Call Detail ─────────────────────────
+
+  async getTransactionBlockDetail(digest: string): Promise<unknown> {
+    return this.request(`/api/indexer/transaction-blocks/${digest}`, {});
+  }
+
+  async getTransactionMoveCalls(
+    digest: string,
+    includeActionSummary?: boolean,
+  ): Promise<{ items: unknown[] }> {
+    return this.request(`/api/indexer/transaction-blocks/${digest}/move-calls`, {
+      includeActionSummary: includeActionSummary ? 1 : undefined,
+    });
+  }
+
+  async getMoveCallDetail(
+    txDigest: string,
+    callIndex: number,
+  ): Promise<unknown> {
+    return this.request(`/api/indexer/move-calls/${txDigest}/${callIndex}`, {});
+  }
 }
 
 // Singleton
