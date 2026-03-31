@@ -49,9 +49,9 @@ async function main() {
 
   // Start activity tracker (Track E sub-module)
   const trackerMod = await tryImport<{
-    ActivityTracker: new (...args: unknown[]) => { start(): void; stop(): void };
+    ActivityTracker: new (...args: unknown[]) => { start(): void; stop(): void; onPollComplete?: (() => void) | null };
   }>('./eve-eyes/activity-tracker.js');
-  let tracker: { start(): void; stop(): void } | null = null;
+  let tracker: { start(): void; stop(): void; onPollComplete?: (() => void) | null } | null = null;
   if (trackerMod) {
     tracker = new trackerMod.ActivityTracker(db, eveEyesClient);
     tracker.start();
@@ -75,6 +75,13 @@ async function main() {
   if (worldAggMod) {
     worldAggregator = new worldAggMod.WorldAggregator(db);
     console.log('[main] WorldAggregator ready');
+  }
+
+  // Wire ActivityTracker → WorldAggregator
+  if (tracker && tracker.onPollComplete !== undefined) {
+    tracker.onPollComplete = () => {
+      try { worldAggregator!.aggregate(); } catch (e) { console.error('[main] WorldAggregator error (activity):', e); }
+    };
   }
 
   if (utopiaTrackerMod) {

@@ -9,6 +9,7 @@ export class ActivityTracker {
   private client: EveEyesClient;
   private intervalHandle: ReturnType<typeof setInterval> | null = null;
   private pollIntervalMs: number;
+  onPollComplete: (() => void) | null = null;
 
   constructor(db: Database.Database, client: EveEyesClient, pollIntervalMs = 300_000) {
     this.db = db;
@@ -20,22 +21,39 @@ export class ActivityTracker {
     const now = Date.now();
     const windowStart = now - WINDOW_HOURS * 60 * 60 * 1000;
 
-    // Query totals for key modules (page 1 only — we just need pagination.total)
-    const [turretTotal, nodeTotal, gateTotal] = await Promise.all([
-      this.client.getModuleCallCount('turret'),
-      this.client.getModuleCallCount('network_node'),
-      this.client.getModuleCallCount('gate'),
-    ]);
+    // Use aggregated endpoint instead of 3 separate paginated calls
+    let turretTotal = 0;
+    let nodeTotal = 0;
+    let gateTotal = 0;
+    try {
+      const { modules } = await this.client.getModuleCallCounts();
+      for (const mod of modules) {
+        // module-call-counts returns objects — extract counts by name match
+        if (typeof mod === 'object' && mod !== null) {
+          const name = String((mod as Record<string, unknown>).title ?? (mod as Record<string, unknown>).moduleName ?? '').toLowerCase();
+          const count = Number((mod as Record<string, unknown>).count ?? (mod as Record<string, unknown>).metric ?? 0);
+          if (name.includes('turret')) turretTotal = count;
+          else if (name.includes('network_node') || name.includes('network node')) nodeTotal = count;
+          else if (name.includes('gate')) gateTotal = count;
+        }
+      }
+    } catch {
+      // Fallback to individual calls if new endpoint fails
+      [turretTotal, nodeTotal, gateTotal] = await Promise.all([
+        this.client.getModuleCallCount('turret'),
+        this.client.getModuleCallCount('network_node'),
+        this.client.getModuleCallCount('gate'),
+      ]);
+    }
 
-    // Compute indices (calls per hour, normalized by window)
     const defenseIndex = turretTotal / WINDOW_HOURS;
     const infraIndex = nodeTotal / WINDOW_HOURS;
     const trafficIndex = gateTotal / WINDOW_HOURS;
 
     // Estimate active players: get recent pages and count distinct senders
     const senders = new Set<string>();
-    const modules = ['turret', 'network_node', 'gate'] as const;
-    for (const mod of modules) {
+    const moduleNames = ['turret', 'network_node', 'gate'] as const;
+    for (const mod of moduleNames) {
       const res = await this.client.getMoveCalls({ moduleName: mod }, 1, 50);
       for (const call of res.items) {
         senders.add(call.senderAddress);
@@ -52,15 +70,13 @@ export class ActivityTracker {
   }
 
   start(): void {
-    // Fire immediately, then repeat
-    void this.pollActivity().catch((err) =>
-      console.error('[ActivityTracker] poll error:', err),
-    );
-    this.intervalHandle = setInterval(() => {
-      void this.pollActivity().catch((err) =>
-        console.error('[ActivityTracker] poll error:', err),
-      );
-    }, this.pollIntervalMs);
+    const runPoll = () => {
+      void this.pollActivity()
+        .then(() => { this.onPollComplete?.(); })
+        .catch((err) => console.error('[ActivityTracker] poll error:', err));
+    };
+    runPoll();
+    this.intervalHandle = setInterval(runPoll, this.pollIntervalMs);
   }
 
   stop(): void {
