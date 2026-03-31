@@ -396,3 +396,83 @@ export interface WorldStatus {
   };
   updatedAt: number;
 }
+
+// ── EVE EYES extended types ──────────────────────────────────
+
+export interface EveEyesKillmail {
+  killmailItemId: string;
+  killTimestamp: string;
+  lossType: string;
+  solarSystemId: string;
+  resolutionStatus: string;
+  killer: {
+    label: string;
+    username: string;
+    walletAddress: string;
+    characterItemId: string;
+  };
+  victim: {
+    label: string;
+    username: string;
+    walletAddress: string;
+    characterItemId: string;
+  };
+}
+
+export interface EveEyesLeaderboardEntry {
+  rank: number;
+  tenant: string;
+  ownerCharacterItemId: string;
+  userId: string;
+  walletAddress: string;
+  buildingCount: number;
+  lastSeenAt: string;
+  username: string;
+}
+
+export interface EveEyesLeaderboardResponse {
+  ok: boolean;
+  apiVersion: string;
+  auth: { type: string };
+  leaderboard: EveEyesLeaderboardEntry[];
+}
+
+export interface EveEyesModuleSummary {
+  title: string;
+  href: string;
+  description: string;
+  metric: string;
+  supporting: string;
+  status: 'live' | 'locked';
+}
+
+export interface EveEyesModulesSummaryResponse {
+  modules: EveEyesModuleSummary[];
+}
+
+export interface EveEyesModuleCallCount {
+  moduleName: string;
+  count: number;
+}
+
+export interface EveEyesSystemSearchResult {
+  id: number;
+  name: string;
+  constellationId: number;
+  regionId: number;
+}
+
+export interface EveEyesSystemDetail {
+  id: number;
+  name: string;
+  constellationId: number;
+  regionId: number;
+  location: { x: number; y: number; z: number };
+  gateLinks: unknown[];
+}
+
+export interface EveEyesRouteResponse {
+  route: number[];
+}
+
+export type EveEyesBuildingModuleName = 'assembly' | 'gate' | 'network_node' | 'storage_unit' | 'turret';
