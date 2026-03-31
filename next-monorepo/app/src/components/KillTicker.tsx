@@ -1,10 +1,10 @@
 "use client";
 
 import { Panel } from "@/components/ui/Panel";
-import type { KillEntry } from "@/types";
+import type { KillEvent } from "@/types";
 
 interface Props {
-  kills: KillEntry[];
+  kills: KillEvent[];
 }
 
 export function KillTicker({ kills }: Props) {
@@ -20,12 +20,9 @@ export function KillTicker({ kills }: Props) {
     <Panel title="Kill Ticker" badge="LIVE">
       <div className="mt-2 grid gap-1.5">
         {kills.map((kill) => (
-          <a
-            key={kill.id}
-            href={`https://suiscan.xyz/testnet/object/${kill.id}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-between border border-eve-panel-border/30 bg-[rgba(8,11,16,0.84)] p-1.5 hover:border-red-500/40 transition-colors"
+          <div
+            key={`${kill.source}-${kill.id}`}
+            className="flex items-center justify-between border border-eve-panel-border/30 bg-[rgba(8,11,16,0.84)] p-1.5 transition-colors"
           >
             <div className="text-[0.7rem]">
               <span className="text-red-400">{kill.killerName}</span>
@@ -39,8 +36,17 @@ export function KillTicker({ kills }: Props) {
               <span className="text-[0.6rem] text-eve-muted/50 border border-eve-panel-border/30 px-1 py-0.5">
                 SYS-{kill.solarSystemId}
               </span>
+              <span
+                className={`text-[0.55rem] border px-1 py-0.5 ${
+                  kill.source === "eve-eyes"
+                    ? "border-blue-500/40 text-blue-400"
+                    : "border-amber-500/40 text-amber-400"
+                }`}
+              >
+                {kill.source === "eve-eyes" ? "EVE" : "UTP"}
+              </span>
             </div>
-          </a>
+          </div>
         ))}
       </div>
     </Panel>

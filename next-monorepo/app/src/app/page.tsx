@@ -5,14 +5,17 @@ import { Panel } from "@/components/ui/Panel";
 import { RiskBadge } from "@/components/ui/RiskBadge";
 import { WorldStatusBar } from "@/components/WorldStatusBar";
 import { KillTicker } from "@/components/KillTicker";
+import { BuildingLeaderboard } from "@/components/BuildingLeaderboard";
+import { EcosystemStatus } from "@/components/EcosystemStatus";
 import { useDashboard } from "@/hooks/use-dashboard";
 import { useWorldStatus } from "@/hooks/use-world-status";
-import type { KillEntry } from "@/types";
+import { useEveKillmails, useLeaderboard, useModulesSummary } from "@/hooks/use-eve-eyes";
+import type { KillEvent } from "@/types";
 
 type RiskLevel = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
 
-function killToRisk(kill: KillEntry): RiskLevel {
-  const age = Date.now() - kill.killedAt;
+function killToRisk(kill: { timestamp?: number; killedAt?: number }): RiskLevel {
+  const age = Date.now() - (kill.timestamp ?? kill.killedAt ?? 0);
   if (age < 3600000) return "CRITICAL";
   if (age < 21600000) return "HIGH";
   if (age < 86400000) return "MEDIUM";
@@ -33,23 +36,66 @@ function formatAge(ts: number): string {
 export default function HomePage() {
   const { feedItems, stats, regionSummary, isLoading } = useDashboard();
   const { worldStatus, isLoading: worldLoading } = useWorldStatus();
+  const { killmails: eveKills } = useEveKillmails();
+  const { leaderboard, isLoading: lbLoading } = useLeaderboard();
+  const { modules: ecosystemFeatures, isLoading: ecoLoading } = useModulesSummary();
 
   const recentKills = worldStatus?.combat.recentKills ?? [];
-  const breaking = recentKills[0];
 
-  const headlines = recentKills.map((kill, i) => ({
+  // Merge kills from both sources into KillEvent[]
+  const mergedKills: KillEvent[] = (() => {
+    const events: KillEvent[] = [];
+    // Utopia kills
+    for (const kill of recentKills) {
+      events.push({
+        id: kill.id,
+        timestamp: kill.killedAt,
+        killerName: kill.killerName,
+        victimName: kill.victimName,
+        lossType: kill.lossType,
+        solarSystemId: kill.solarSystemId,
+        source: "utopia",
+      });
+    }
+    // EVE Eyes kills
+    if (eveKills) {
+      for (const kill of eveKills) {
+        events.push({
+          id: kill.killmailItemId,
+          timestamp: new Date(kill.killTimestamp).getTime(),
+          killerName: kill.killer.label,
+          victimName: kill.victim.label,
+          lossType: kill.lossType,
+          solarSystemId: kill.solarSystemId,
+          source: "eve-eyes",
+        });
+      }
+    }
+    const seen = new Set<string>();
+    return events
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .filter((e) => {
+        if (seen.has(e.id)) return false;
+        seen.add(e.id);
+        return true;
+      });
+  })();
+
+  const breaking = mergedKills[0];
+
+  const headlines = mergedKills.map((kill, i) => ({
     id: `KILL-${i}`,
     title: `${kill.killerName} destroyed ${kill.victimName}'s ${kill.lossType.toLowerCase()}`,
     summary: `Kill reported in system ${kill.solarSystemId}`,
     risk: killToRisk(kill) as RiskLevel,
     category: "Combat",
-    ts: formatTime(kill.killedAt) + " UTC",
+    ts: formatTime(kill.timestamp) + " UTC",
   }));
 
-  const timelineEvents = recentKills.map((kill, i) => ({
+  const timelineEvents = mergedKills.map((kill, i) => ({
     id: `EV-${i}`,
     title: `${kill.killerName} → ${kill.victimName}`,
-    age: formatAge(kill.killedAt),
+    age: formatAge(kill.timestamp),
     detail: `${kill.lossType} lost in system ${kill.solarSystemId}`,
   }));
 
@@ -95,7 +141,7 @@ export default function HomePage() {
                 </p>
                 <div className="mt-2 flex gap-1.5 flex-wrap">
                   <span className="border border-eve-panel-border text-eve-muted text-[0.63rem] px-1.5 py-0.5">
-                    {formatTime(breaking.killedAt)} UTC
+                    {formatTime(breaking.timestamp)} UTC
                   </span>
                   <span className="border border-eve-panel-border text-eve-muted text-[0.63rem] px-1.5 py-0.5">
                     SYS-{breaking.solarSystemId}
@@ -184,7 +230,10 @@ export default function HomePage() {
             </div>
           </Panel>
 
-          <KillTicker kills={recentKills} />
+          <KillTicker kills={mergedKills.slice(0, 10)} />
+
+          <BuildingLeaderboard entries={leaderboard} isLoading={lbLoading} />
+          <EcosystemStatus features={ecosystemFeatures} isLoading={ecoLoading} />
 
           <Panel title="Activity" badge="live">
             <div className="mt-2 grid grid-cols-3 gap-2">
