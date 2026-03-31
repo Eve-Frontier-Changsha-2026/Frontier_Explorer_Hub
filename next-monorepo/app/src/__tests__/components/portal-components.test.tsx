@@ -1,10 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { usePortalStore } from "@/stores/portal-store";
 import { AddLinkDialog } from "@/components/portal/AddLinkDialog";
 import { PortalEmptyState } from "@/components/portal/PortalEmptyState";
 import { PortalLinkList } from "@/components/portal/PortalLinkList";
 import { PortalFullscreenBar } from "@/components/portal/PortalFullscreenBar";
+import { WalletSignDialog } from "@/components/portal/WalletSignDialog";
 
 // Mock next/navigation
 vi.mock("next/navigation", () => ({
@@ -117,5 +119,57 @@ describe("PortalFullscreenBar", () => {
   it("hides Add to Portal button when onAddToPortal not provided", () => {
     render(<PortalFullscreenBar name="Test" url="https://example.com" />);
     expect(screen.queryByText("+ Add to Portal")).toBeNull();
+  });
+});
+
+describe("WalletSignDialog", () => {
+  it("renders transaction details and action buttons", () => {
+    const onApprove = vi.fn();
+    const onReject = vi.fn();
+    render(
+      <WalletSignDialog
+        txBytes="AQID"
+        siteName="Bounty Escrow Protocol"
+        onApprove={onApprove}
+        onReject={onReject}
+      />
+    );
+
+    expect(screen.getByText(/Bounty Escrow Protocol/)).toBeTruthy();
+    expect(screen.getByText(/requests a transaction/i)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /approve/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /reject/i })).toBeTruthy();
+  });
+
+  it("calls onApprove when Approve is clicked", async () => {
+    const onApprove = vi.fn();
+    const onReject = vi.fn();
+    render(
+      <WalletSignDialog
+        txBytes="AQID"
+        siteName="Test Site"
+        onApprove={onApprove}
+        onReject={onReject}
+      />
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /approve/i }));
+    expect(onApprove).toHaveBeenCalledOnce();
+  });
+
+  it("calls onReject when Reject is clicked", async () => {
+    const onApprove = vi.fn();
+    const onReject = vi.fn();
+    render(
+      <WalletSignDialog
+        txBytes="AQID"
+        siteName="Test Site"
+        onApprove={onApprove}
+        onReject={onReject}
+      />
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /reject/i }));
+    expect(onReject).toHaveBeenCalledOnce();
   });
 });
