@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { usePortalStore } from "@/stores/portal-store";
 import { useUIStore } from "@/stores/ui-store";
 import { PortalFullscreenBar } from "@/components/portal/PortalFullscreenBar";
+import { useWalletBridge } from "@/hooks/use-wallet-bridge";
+import { WalletSignDialog } from "@/components/portal/WalletSignDialog";
 
 export default function PortalFullscreenPage() {
   const { id } = useParams<{ id: string }>();
@@ -13,6 +15,10 @@ export default function PortalFullscreenPage() {
   const addToast = useUIStore((s) => s.addToast);
   const collapsed = useUIStore((s) => s.sidebarCollapsed);
   const link = getLinkById(id);
+  const [iframeEl, setIframeEl] = useState<HTMLIFrameElement | null>(null);
+  const iframeRef = useCallback((node: HTMLIFrameElement | null) => { setIframeEl(node); }, []);
+
+  const { pendingSign, approvePendingSign, rejectPendingSign } = useWalletBridge(iframeEl);
 
   useEffect(() => {
     if (!link) {
@@ -29,13 +35,23 @@ export default function PortalFullscreenPage() {
     }`}>
       <PortalFullscreenBar name={link.name} url={link.url} />
       <iframe
+        ref={iframeRef}
         src={link.url}
         sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+        allow="clipboard-write"
         referrerPolicy="strict-origin-when-cross-origin"
         loading="lazy"
         className="flex-1 w-full border-0"
         title={link.name}
       />
+      {pendingSign && (
+        <WalletSignDialog
+          txBytes={pendingSign.txBytes}
+          siteName={link.name}
+          onApprove={approvePendingSign}
+          onReject={rejectPendingSign}
+        />
+      )}
     </div>
   );
 }
