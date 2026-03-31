@@ -120,3 +120,27 @@ export function getWorldAssembly(id: string) {
 export function getWorldTribe(id: number) {
   return apiFetch<unknown>(`/api/world/tribe/${id}`);
 }
+
+// ── EVE EYES proxy endpoints ─────────────────────────────────
+
+export function getEveEyesKillmails(limit = 20) {
+  return apiFetch<{ items: import("@/types").EveEyesKillmail[] }>(`/api/eve-eyes/killmails?limit=${limit}`);
+}
+
+export function getEveEyesLeaderboard(limit = 10, moduleName?: string) {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (moduleName) params.set("moduleName", moduleName);
+  return apiFetch<{ ok: boolean; leaderboard: import("@/types").LeaderboardEntry[] }>(`/api/eve-eyes/leaderboard?${params}`);
+}
+
+export function getEveEyesModulesSummary() {
+  return apiFetch<{ modules: import("@/types").EcosystemFeature[] }>("/api/eve-eyes/modules-summary");
+}
+
+export function searchEveEyesSystems(query: string) {
+  return apiFetch<{ data: import("@/types").SystemSearchResult[] }>(`/api/eve-eyes/systems/search?q=${encodeURIComponent(query)}`);
+}
+
+export function getEveEyesSystemDetail(id: number) {
+  return apiFetch<import("@/types").SystemDetail>(`/api/eve-eyes/systems/${id}`);
+}
