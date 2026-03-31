@@ -10,6 +10,7 @@ import { createSubscriptionRouter } from './routes/subscription.js';
 import { createBountiesRouter } from './routes/bounties.js';
 import { createRegionRouter } from './routes/region.js';
 import { createWorldRouter } from './routes/world.js';
+import { createEveEyesRouter } from './routes/eve-eyes.js';
 import { createCharacterRouter } from './routes/character.js';
 import { CharacterResolver } from '../eve-eyes/character-resolver.js';
 import { config } from '../config.js';
@@ -44,6 +45,7 @@ export function createApp(opts: CreateAppOptions): express.Express {
   app.use('/api', createBountiesRouter(db, suiClient));
   app.use('/api', createRegionRouter(db));
   app.use('/api', createWorldRouter(db));
+  app.use('/api', createEveEyesRouter());
 
   // Character route — requires sui client
   if (suiClient) {
