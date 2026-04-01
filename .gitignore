@@ -8,3 +8,4 @@ services/node_modules/
 services/dist/
 services/*.db
 services/.env
+next-monorepo/app/.next/
