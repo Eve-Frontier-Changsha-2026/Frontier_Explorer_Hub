@@ -8,6 +8,25 @@ export interface PortalLink {
   url: string;
   createdAt: number;
   order: number;
+  isDefault?: boolean;
+}
+
+const DEFAULT_LINKS_DATA: { name: string; url: string }[] = [
+  { name: "Bounty Escrow Protocol", url: "https://bounty-escrow-protocol.vercel.app/" },
+  { name: "Wreckage Insurance Protocol", url: "https://wreckage-insurance-protocol.vercel.app/" },
+  { name: "Astro Logistics Network", url: "https://astro-logistics-network.vercel.app/" },
+  { name: "Industrial Auto OS", url: "https://industrial-auto-os.vercel.app/" },
+];
+
+export function buildDefaultLinks(): PortalLink[] {
+  return DEFAULT_LINKS_DATA.map((d, i) => ({
+    id: `default-${i}`,
+    name: d.name,
+    url: d.url,
+    createdAt: 0,
+    order: i,
+    isDefault: true,
+  }));
 }
 
 export interface PortalState {
@@ -23,7 +42,7 @@ export interface PortalState {
 export const usePortalStore = create<PortalState>()(
   persist(
     (set, get) => ({
-      links: [],
+      links: buildDefaultLinks(),
 
       addLink: (name, url) => {
         if (!validatePortalUrl(url).valid) return null;
@@ -72,6 +91,17 @@ export const usePortalStore = create<PortalState>()(
       getLinkById: (id) => get().links.find((l) => l.id === id),
       findByUrl: (url) => get().links.find((l) => l.url === url),
     }),
-    { name: "feh-portal-links" }
+    {
+      name: "feh-portal-links",
+      version: 1,
+      migrate: (persisted: unknown, version: number) => {
+        const state = persisted as { links?: PortalLink[] };
+        // v0 → v1: inject default links if store was empty
+        if (version === 0 && (!state.links || state.links.length === 0)) {
+          return { ...state, links: buildDefaultLinks() };
+        }
+        return state;
+      },
+    }
   )
 );
