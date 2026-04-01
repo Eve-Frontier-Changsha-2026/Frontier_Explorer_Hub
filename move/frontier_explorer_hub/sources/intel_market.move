@@ -47,67 +47,37 @@ module frontier_explorer_hub::intel_market {
     const REVIEW_TIMEOUT_MS: u64 = 86_400_000; // 24h
 
     // Error codes (300 series — avoid conflict with market.move 200s)
-    #[error]
     const ENotSeller: u64 = 300;
-    #[error]
     const ENotBuyer: u64 = 301;
-    #[error]
     const EListingNotActive: u64 = 302;
-    #[error]
     const EListingNotSold: u64 = 303;
-    #[error]
     const EAlreadySealed: u64 = 304;
-    #[error]
     const ENotSealed: u64 = 305;
-    #[error]
     const ETitleTooLong: u64 = 306;
-    #[error]
     const EPayloadTooLarge: u64 = 307;
-    #[error]
     const EInvalidIntelType: u64 = 308;
-    #[error]
     const EInvalidSeverity: u64 = 309;
-    #[error]
     const EInvalidRating: u64 = 310;
-    #[error]
     const EInsufficientFee: u64 = 311;
-    #[error]
     const EInsufficientPayment: u64 = 312;
-    #[error]
     const ESelfPurchase: u64 = 313;
-    #[error]
     const ENotExpired: u64 = 314;
-    #[error]
     const EAutoReleaseNotReady: u64 = 315;
-    #[error]
     const EExpiryInPast: u64 = 316;
-    #[error]
     const EHasBuyer: u64 = 317;
-    #[error]
     const EInvalidSealId: u64 = 318;
-    #[error]
     const EPayloadEmpty: u64 = 319;
 
     // Error codes (320 series — bounty mode)
-    #[error]
     const ERequestNotOpen: u64 = 320;
-    #[error]
     const ERequestNotReviewing: u64 = 321;
-    #[error]
     const EDescriptionTooLong: u64 = 322;
-    #[error]
     const EDeadlineInvalid: u64 = 323;
-    #[error]
     const EHasSubmissions: u64 = 324;
-    #[error]
     const EAutoSettleNotReady: u64 = 325;
-    #[error]
     const ESellerNotFound: u64 = 326;
-    #[error]
     const EAlreadySubmitted: u64 = 327;
-    #[error]
     const ERequestDeadlinePassed: u64 = 328;
-    #[error]
     const EInvalidSealRequestId: u64 = 329;
 
     // ═══════════════════════════════════════════════
