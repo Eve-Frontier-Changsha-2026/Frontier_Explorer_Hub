@@ -9,7 +9,7 @@ import { useCharacter } from "@/hooks/use-character";
 const NAV_ITEMS = [
   { path: "/", label: "Dashboard", icon: "M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z" },
   { path: "/map", label: "Tactical Map", icon: "M12 2v20M2 12h20M12 2l3 3M12 2l-3 3M12 22l3-3M12 22l-3-3M2 12l3-3M2 12l3 3M22 12l-3-3M22 12l-3 3" },
-  { path: "/submit", label: "Submit Intel", icon: "M12 19V5M5 12l7-7 7 7" },
+  { path: "/intel-market", label: "Intel Market", icon: "M12 19V5M5 12l7-7 7 7" },
   { path: "/bounties", label: "Bounties", icon: "M12 2a10 10 0 100 20 10 10 0 000-20zM12 6a6 6 0 100 12 6 6 0 000-12zM12 10a2 2 0 100 4 2 2 0 000-4z" },
   { path: "/subscribe", label: "Membership", icon: "M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z" },
   { path: "/store", label: "Plugin Store", icon: "M3 3h5v5H3zM10 3h5v5h-5zM17 3h5v5h-5zM3 10h5v5H3zM10 10h5v5h-5zM17 10h5v5h-5zM3 17h5v5H3zM10 17h5v5h-5zM17 17h5v5h-5z" },
