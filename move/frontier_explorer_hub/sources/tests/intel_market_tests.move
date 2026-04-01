@@ -521,4 +521,328 @@ module frontier_explorer_hub::intel_market_tests {
         clock::destroy_for_testing(clk);
         scenario.end();
     }
+
+    // ═══════════════════════════════════════════════
+    // Monkey / Edge Case Tests
+    // ═══════════════════════════════════════════════
+
+    #[test]
+    #[expected_failure(abort_code = intel_market::ETitleTooLong)]
+    fun test_title_257_chars_fails() {
+        let mut scenario = ts::begin(SELLER);
+        let mut clk = clock::create_for_testing(scenario.ctx());
+        clock::set_for_testing(&mut clk, 1000);
+
+        let mut title = vector[];
+        let mut i = 0u64;
+        while (i < 257) { title.push_back(0x41); i = i + 1; };
+
+        let fee = coin::mint_for_testing<SUI>(10_000_000, scenario.ctx());
+        intel_market::list_intel(title, 1, 0, 0, 0, 0, 5, 100_000_000, 100_000_000, fee, &clk, scenario.ctx());
+
+        clock::destroy_for_testing(clk);
+        scenario.end();
+    }
+
+    #[test]
+    fun test_title_256_chars_succeeds() {
+        let mut scenario = ts::begin(SELLER);
+        let mut clk = clock::create_for_testing(scenario.ctx());
+        clock::set_for_testing(&mut clk, 1000);
+
+        let mut title = vector[];
+        let mut i = 0u64;
+        while (i < 256) { title.push_back(0x41); i = i + 1; };
+
+        let fee = coin::mint_for_testing<SUI>(10_000_000, scenario.ctx());
+        intel_market::list_intel(title, 1, 0, 0, 0, 0, 5, 100_000_000, 100_000_000, fee, &clk, scenario.ctx());
+
+        clock::destroy_for_testing(clk);
+        scenario.end();
+    }
+
+    #[test]
+    #[expected_failure(abort_code = intel_market::EInvalidRating)]
+    fun test_rating_zero_fails() {
+        let mut scenario = ts::begin(SELLER);
+        let mut clk = clock::create_for_testing(scenario.ctx());
+        clock::set_for_testing(&mut clk, 1000);
+        intel_market::create_seller_profile(&clk, scenario.ctx());
+
+        let fee = coin::mint_for_testing<SUI>(10_000_000, scenario.ctx());
+        intel_market::list_intel(b"T", 1, 0, 0, 0, 0, 5, 100_000_000, 100_000_000, fee, &clk, scenario.ctx());
+
+        scenario.next_tx(SELLER);
+        let mut listing = scenario.take_shared<intel_market::IntelListing>();
+        intel_market::set_encrypted_payload(&mut listing, b"enc", scenario.ctx());
+        ts::return_shared(listing);
+
+        scenario.next_tx(BUYER);
+        let mut listing = scenario.take_shared<intel_market::IntelListing>();
+        let pay = coin::mint_for_testing<SUI>(100_000_000, scenario.ctx());
+        intel_market::purchase_intel(&mut listing, pay, &clk, scenario.ctx());
+        ts::return_shared(listing);
+
+        scenario.next_tx(BUYER);
+        let mut listing = scenario.take_shared<intel_market::IntelListing>();
+        let mut profile = scenario.take_shared<intel_market::SellerProfile>();
+        intel_market::confirm_and_rate(&mut listing, &mut profile, 0, &clk, scenario.ctx());
+
+        ts::return_shared(listing);
+        ts::return_shared(profile);
+        clock::destroy_for_testing(clk);
+        scenario.end();
+    }
+
+    #[test]
+    #[expected_failure(abort_code = intel_market::EInvalidRating)]
+    fun test_rating_six_fails() {
+        let mut scenario = ts::begin(SELLER);
+        let mut clk = clock::create_for_testing(scenario.ctx());
+        clock::set_for_testing(&mut clk, 1000);
+        intel_market::create_seller_profile(&clk, scenario.ctx());
+
+        let fee = coin::mint_for_testing<SUI>(10_000_000, scenario.ctx());
+        intel_market::list_intel(b"T", 1, 0, 0, 0, 0, 5, 100_000_000, 100_000_000, fee, &clk, scenario.ctx());
+
+        scenario.next_tx(SELLER);
+        let mut listing = scenario.take_shared<intel_market::IntelListing>();
+        intel_market::set_encrypted_payload(&mut listing, b"enc", scenario.ctx());
+        ts::return_shared(listing);
+
+        scenario.next_tx(BUYER);
+        let mut listing = scenario.take_shared<intel_market::IntelListing>();
+        let pay = coin::mint_for_testing<SUI>(100_000_000, scenario.ctx());
+        intel_market::purchase_intel(&mut listing, pay, &clk, scenario.ctx());
+        ts::return_shared(listing);
+
+        scenario.next_tx(BUYER);
+        let mut listing = scenario.take_shared<intel_market::IntelListing>();
+        let mut profile = scenario.take_shared<intel_market::SellerProfile>();
+        intel_market::confirm_and_rate(&mut listing, &mut profile, 6, &clk, scenario.ctx());
+
+        ts::return_shared(listing);
+        ts::return_shared(profile);
+        clock::destroy_for_testing(clk);
+        scenario.end();
+    }
+
+    #[test]
+    #[expected_failure(abort_code = intel_market::EPayloadEmpty)]
+    fun test_empty_payload_fails() {
+        let mut scenario = ts::begin(SELLER);
+        let mut clk = clock::create_for_testing(scenario.ctx());
+        clock::set_for_testing(&mut clk, 1000);
+
+        let fee = coin::mint_for_testing<SUI>(10_000_000, scenario.ctx());
+        intel_market::list_intel(b"T", 1, 0, 0, 0, 0, 5, 100_000_000, 100_000_000, fee, &clk, scenario.ctx());
+
+        scenario.next_tx(SELLER);
+        let mut listing = scenario.take_shared<intel_market::IntelListing>();
+        intel_market::set_encrypted_payload(&mut listing, vector[], scenario.ctx());
+
+        ts::return_shared(listing);
+        clock::destroy_for_testing(clk);
+        scenario.end();
+    }
+
+    #[test]
+    #[expected_failure(abort_code = intel_market::EInvalidIntelType)]
+    fun test_invalid_intel_type_fails() {
+        let mut scenario = ts::begin(SELLER);
+        let mut clk = clock::create_for_testing(scenario.ctx());
+        clock::set_for_testing(&mut clk, 1000);
+
+        let fee = coin::mint_for_testing<SUI>(10_000_000, scenario.ctx());
+        intel_market::list_intel(b"T", 1, 0, 0, 0, 99, 5, 100_000_000, 100_000_000, fee, &clk, scenario.ctx());
+
+        clock::destroy_for_testing(clk);
+        scenario.end();
+    }
+
+    #[test]
+    #[expected_failure(abort_code = intel_market::EInvalidSeverity)]
+    fun test_severity_11_fails() {
+        let mut scenario = ts::begin(SELLER);
+        let mut clk = clock::create_for_testing(scenario.ctx());
+        clock::set_for_testing(&mut clk, 1000);
+
+        let fee = coin::mint_for_testing<SUI>(10_000_000, scenario.ctx());
+        intel_market::list_intel(b"T", 1, 0, 0, 0, 0, 11, 100_000_000, 100_000_000, fee, &clk, scenario.ctx());
+
+        clock::destroy_for_testing(clk);
+        scenario.end();
+    }
+
+    #[test]
+    #[expected_failure(abort_code = intel_market::EExpiryInPast)]
+    fun test_expiry_in_past_fails() {
+        let mut scenario = ts::begin(SELLER);
+        let mut clk = clock::create_for_testing(scenario.ctx());
+        clock::set_for_testing(&mut clk, 100_000_000);
+
+        let fee = coin::mint_for_testing<SUI>(10_000_000, scenario.ctx());
+        intel_market::list_intel(b"T", 1, 0, 0, 0, 0, 5, 50_000_000, 100_000_000, fee, &clk, scenario.ctx());
+
+        clock::destroy_for_testing(clk);
+        scenario.end();
+    }
+
+    #[test]
+    #[expected_failure(abort_code = intel_market::EInsufficientFee)]
+    fun test_insufficient_fee_fails() {
+        let mut scenario = ts::begin(SELLER);
+        let mut clk = clock::create_for_testing(scenario.ctx());
+        clock::set_for_testing(&mut clk, 1000);
+
+        let fee = coin::mint_for_testing<SUI>(9_999_999, scenario.ctx()); // 1 MIST short
+        intel_market::list_intel(b"T", 1, 0, 0, 0, 0, 5, 100_000_000, 100_000_000, fee, &clk, scenario.ctx());
+
+        clock::destroy_for_testing(clk);
+        scenario.end();
+    }
+
+    #[test]
+    #[expected_failure(abort_code = intel_market::ENotSeller)]
+    fun test_non_seller_cancel_fails() {
+        let mut scenario = ts::begin(SELLER);
+        let mut clk = clock::create_for_testing(scenario.ctx());
+        clock::set_for_testing(&mut clk, 1000);
+
+        let fee = coin::mint_for_testing<SUI>(10_000_000, scenario.ctx());
+        intel_market::list_intel(b"T", 1, 0, 0, 0, 0, 5, 100_000_000, 100_000_000, fee, &clk, scenario.ctx());
+
+        // Outsider tries to cancel
+        scenario.next_tx(OUTSIDER);
+        let mut listing = scenario.take_shared<intel_market::IntelListing>();
+        intel_market::cancel_listing(&mut listing, scenario.ctx());
+
+        ts::return_shared(listing);
+        clock::destroy_for_testing(clk);
+        scenario.end();
+    }
+
+    #[test]
+    #[expected_failure(abort_code = intel_market::EAlreadySealed)]
+    fun test_double_seal_fails() {
+        let mut scenario = ts::begin(SELLER);
+        let mut clk = clock::create_for_testing(scenario.ctx());
+        clock::set_for_testing(&mut clk, 1000);
+
+        let fee = coin::mint_for_testing<SUI>(10_000_000, scenario.ctx());
+        intel_market::list_intel(b"T", 1, 0, 0, 0, 0, 5, 100_000_000, 100_000_000, fee, &clk, scenario.ctx());
+
+        scenario.next_tx(SELLER);
+        let mut listing = scenario.take_shared<intel_market::IntelListing>();
+        intel_market::set_encrypted_payload(&mut listing, b"enc1", scenario.ctx());
+        // Try seal again
+        intel_market::set_encrypted_payload(&mut listing, b"enc2", scenario.ctx());
+
+        ts::return_shared(listing);
+        clock::destroy_for_testing(clk);
+        scenario.end();
+    }
+
+    #[test]
+    #[expected_failure(abort_code = intel_market::ENotBuyer)]
+    fun test_outsider_confirm_fails() {
+        let mut scenario = ts::begin(SELLER);
+        let mut clk = clock::create_for_testing(scenario.ctx());
+        clock::set_for_testing(&mut clk, 1000);
+        intel_market::create_seller_profile(&clk, scenario.ctx());
+
+        let fee = coin::mint_for_testing<SUI>(10_000_000, scenario.ctx());
+        intel_market::list_intel(b"T", 1, 0, 0, 0, 0, 5, 100_000_000, 100_000_000, fee, &clk, scenario.ctx());
+
+        scenario.next_tx(SELLER);
+        let mut listing = scenario.take_shared<intel_market::IntelListing>();
+        intel_market::set_encrypted_payload(&mut listing, b"enc", scenario.ctx());
+        ts::return_shared(listing);
+
+        scenario.next_tx(BUYER);
+        let mut listing = scenario.take_shared<intel_market::IntelListing>();
+        let pay = coin::mint_for_testing<SUI>(100_000_000, scenario.ctx());
+        intel_market::purchase_intel(&mut listing, pay, &clk, scenario.ctx());
+        ts::return_shared(listing);
+
+        // Outsider tries to confirm
+        scenario.next_tx(OUTSIDER);
+        let mut listing = scenario.take_shared<intel_market::IntelListing>();
+        let mut profile = scenario.take_shared<intel_market::SellerProfile>();
+        intel_market::confirm_and_rate(&mut listing, &mut profile, 3, &clk, scenario.ctx());
+
+        ts::return_shared(listing);
+        ts::return_shared(profile);
+        clock::destroy_for_testing(clk);
+        scenario.end();
+    }
+
+    #[test]
+    #[expected_failure(abort_code = intel_market::EDeadlineInvalid)]
+    fun test_deadline_too_short_fails() {
+        let mut scenario = ts::begin(BUYER);
+        let mut clk = clock::create_for_testing(scenario.ctx());
+        clock::set_for_testing(&mut clk, 1000);
+
+        let reward = coin::mint_for_testing<SUI>(1_000_000_000, scenario.ctx());
+        // Deadline only 30min from now (min is 1h)
+        intel_market::post_request(b"T", 0, 1, b"d", reward, 1000 + 1_800_000, &clk, scenario.ctx());
+
+        clock::destroy_for_testing(clk);
+        scenario.end();
+    }
+
+    #[test]
+    #[expected_failure(abort_code = intel_market::EDeadlineInvalid)]
+    fun test_deadline_too_long_fails() {
+        let mut scenario = ts::begin(BUYER);
+        let mut clk = clock::create_for_testing(scenario.ctx());
+        clock::set_for_testing(&mut clk, 1000);
+
+        let reward = coin::mint_for_testing<SUI>(1_000_000_000, scenario.ctx());
+        // Deadline 8 days from now (max is 7d)
+        intel_market::post_request(b"T", 0, 1, b"d", reward, 1000 + 691_200_000, &clk, scenario.ctx());
+
+        clock::destroy_for_testing(clk);
+        scenario.end();
+    }
+
+    #[test]
+    fun test_multiple_sellers_fulfill_request() {
+        let mut scenario = ts::begin(BUYER);
+        let mut clk = clock::create_for_testing(scenario.ctx());
+        clock::set_for_testing(&mut clk, 1000);
+
+        let reward = coin::mint_for_testing<SUI>(2_000_000_000, scenario.ctx());
+        intel_market::post_request(b"Multi", 1, 42, b"desc", reward, 1000 + 86_400_000, &clk, scenario.ctx());
+
+        // Seller A fulfills
+        scenario.next_tx(SELLER);
+        intel_market::create_seller_profile(&clk, scenario.ctx());
+        scenario.next_tx(SELLER);
+        let mut request = scenario.take_shared<intel_market::IntelRequest>();
+        intel_market::fulfill_request(&mut request, b"enc_a", &clk, scenario.ctx());
+        assert!(intel_market::request_submission_count(&request) == 1);
+        ts::return_shared(request);
+
+        // Outsider (Seller B) also fulfills
+        scenario.next_tx(OUTSIDER);
+        let mut request = scenario.take_shared<intel_market::IntelRequest>();
+        intel_market::fulfill_request(&mut request, b"enc_b", &clk, scenario.ctx());
+        assert!(intel_market::request_submission_count(&request) == 2);
+        assert!(intel_market::request_status(&request) == 1); // Still REVIEWING
+        ts::return_shared(request);
+
+        // Buyer picks seller A
+        scenario.next_tx(BUYER);
+        let mut request = scenario.take_shared<intel_market::IntelRequest>();
+        let mut profile = scenario.take_shared<intel_market::SellerProfile>();
+        intel_market::accept_and_rate(&mut request, &mut profile, SELLER, 5, &clk, scenario.ctx());
+        assert!(intel_market::request_status(&request) == 2); // COMPLETED
+        ts::return_shared(request);
+        ts::return_shared(profile);
+
+        clock::destroy_for_testing(clk);
+        scenario.end();
+    }
 }
