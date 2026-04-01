@@ -28,14 +28,11 @@ export class ActivityTracker {
     try {
       const { modules } = await this.client.getModuleCallCounts();
       for (const mod of modules) {
-        // module-call-counts returns objects — extract counts by name match
-        if (typeof mod === 'object' && mod !== null) {
-          const name = String((mod as Record<string, unknown>).title ?? (mod as Record<string, unknown>).moduleName ?? '').toLowerCase();
-          const count = Number((mod as Record<string, unknown>).count ?? (mod as Record<string, unknown>).metric ?? 0);
-          if (name.includes('turret')) turretTotal = count;
-          else if (name.includes('network_node') || name.includes('network node')) nodeTotal = count;
-          else if (name.includes('gate')) gateTotal = count;
-        }
+        const name = mod.moduleName.toLowerCase();
+        const count = mod.count;
+        if (name.includes('turret')) turretTotal = count;
+        else if (name.includes('network_node') || name.includes('network node')) nodeTotal = count;
+        else if (name.includes('gate')) gateTotal = count;
       }
     } catch {
       // Fallback to individual calls if new endpoint fails
