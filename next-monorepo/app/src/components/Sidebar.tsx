@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ConnectButton, useCurrentAccount } from "@mysten/dapp-kit";
+import { ConnectButton, useCurrentAccount, useDisconnectWallet } from "@mysten/dapp-kit";
 import { useAuth } from "@/hooks/use-auth";
+import { useCharacter } from "@/hooks/use-character";
 
 const NAV_ITEMS = [
   { path: "/", label: "Dashboard", icon: "M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z" },
@@ -24,6 +25,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const account = useCurrentAccount();
   const auth = useAuth();
+  const { mutate: disconnect } = useDisconnectWallet();
+  const { data: character } = useCharacter(account?.address ?? "");
 
   return (
     <nav
@@ -79,21 +82,42 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       <div className="border-t border-eve-panel-border p-3">
         {account ? (
           <div className={collapsed ? "text-center" : ""}>
+            {/* Player name or address */}
+            {!collapsed && character?.name ? (
+              <p className="text-xs text-eve-gold truncate">{character.name}</p>
+            ) : null}
             <p className="text-[0.6rem] text-eve-muted truncate">
               {collapsed
                 ? account.address.slice(0, 4)
                 : `${account.address.slice(0, 6)}...${account.address.slice(-4)}`}
             </p>
             {!collapsed && (
-              <span
-                className={`text-[0.58rem] border px-1 py-0.5 mt-1 inline-block ${
-                  auth.isPremium
-                    ? "border-eve-gold/60 text-eve-gold"
-                    : "border-eve-panel-border text-eve-muted"
-                }`}
+              <div className="flex items-center gap-1.5 mt-1">
+                <span
+                  className={`text-[0.58rem] border px-1 py-0.5 ${
+                    auth.isPremium
+                      ? "border-eve-gold/60 text-eve-gold"
+                      : "border-eve-panel-border text-eve-muted"
+                  }`}
+                >
+                  {auth.isPremium ? "PREMIUM" : "FREE"}
+                </span>
+                <button
+                  onClick={() => disconnect()}
+                  className="text-[0.58rem] text-eve-muted hover:text-eve-danger border border-eve-panel-border px-1 py-0.5 cursor-pointer transition-colors"
+                >
+                  Disconnect
+                </button>
+              </div>
+            )}
+            {collapsed && (
+              <button
+                onClick={() => disconnect()}
+                className="text-[0.5rem] text-eve-muted hover:text-eve-danger mt-1 cursor-pointer"
+                title="Disconnect wallet"
               >
-                {auth.isPremium ? "PREMIUM" : "FREE"}
-              </span>
+                ✕
+              </button>
             )}
           </div>
         ) : (

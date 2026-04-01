@@ -4,7 +4,12 @@ import { Sidebar } from "@/components/Sidebar";
 
 vi.mock("@mysten/dapp-kit", () => ({
   useCurrentAccount: () => null,
+  useDisconnectWallet: () => ({ mutate: vi.fn() }),
   ConnectButton: () => <button>Connect Wallet</button>,
+}));
+
+vi.mock("@/hooks/use-character", () => ({
+  useCharacter: () => ({ data: null, isLoading: false }),
 }));
 
 vi.mock("next/navigation", () => ({
