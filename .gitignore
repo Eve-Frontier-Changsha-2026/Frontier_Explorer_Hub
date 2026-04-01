@@ -7,3 +7,4 @@ move/frontier_explorer_hub/build/
 services/node_modules/
 services/dist/
 services/*.db
+services/.env
