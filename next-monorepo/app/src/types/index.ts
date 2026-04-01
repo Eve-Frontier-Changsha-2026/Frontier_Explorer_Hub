@@ -292,3 +292,78 @@ export interface KillEvent {
   solarSystemId: string | number;
   source: "eve-eyes" | "utopia";
 }
+
+// ═══════════════════════════════════════════════
+// Intel Market v2
+// ═══════════════════════════════════════════════
+
+export interface PublicMeta {
+  regionId: number;
+  sectorX: number;
+  sectorY: number;
+  sectorZ: number;
+  intelType: number;
+  severity: number;
+  expiry: number;
+}
+
+export interface IntelListingV2 {
+  id: string;
+  seller: string;
+  title: string;
+  publicMetadata: PublicMeta;
+  priceMist: number;
+  status: number; // 0=ACTIVE, 1=SOLD, 2=EXPIRED, 3=CANCELLED
+  buyer: string | null;
+  purchasedAt: number | null;
+  createdAt: number;
+  isSealed: boolean;
+}
+
+export interface IntelRequestV2 {
+  id: string;
+  buyer: string;
+  title: string;
+  intelType: number;
+  regionId: number;
+  description: string;
+  rewardMist: number;
+  deadline: number;
+  status: number; // 0=OPEN, 1=REVIEWING, 2=COMPLETED, 3=CANCELLED, 4=EXPIRED
+  firstSubmissionAt: number | null;
+  submissionCount: number;
+  selectedSeller: string | null;
+  createdAt: number;
+}
+
+export interface IntelSubmissionV2 {
+  seller: string;
+  submittedAt: number;
+}
+
+export interface SellerProfile {
+  id: string;
+  seller: string;
+  totalTrades: number;
+  totalScore: number;
+  totalWeightedScore: number;
+  totalVolumeMist: number;
+  createdAt: number;
+}
+
+// Listing status
+export const LISTING_STATUS = {
+  ACTIVE: 0,
+  SOLD: 1,
+  EXPIRED: 2,
+  CANCELLED: 3,
+} as const;
+
+// Request status
+export const REQUEST_STATUS = {
+  OPEN: 0,
+  REVIEWING: 1,
+  COMPLETED: 2,
+  CANCELLED: 3,
+  EXPIRED: 4,
+} as const;

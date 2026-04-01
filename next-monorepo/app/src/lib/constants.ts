@@ -57,3 +57,50 @@ export const BOUNTY_STATUS_LABELS: Record<number, string> = {
   4: "Disputed",
   5: "Completed",
 };
+
+// ═══════════════════════════════════════════════
+// Intel Market v2
+// ═══════════════════════════════════════════════
+
+export const MIN_LISTING_FEE_MIST = 10_000_000; // 0.01 SUI
+
+export const AUTO_RELEASE_MS = 86_400_000; // 24h
+export const REVIEW_TIMEOUT_MS = 86_400_000; // 24h
+
+export const MIN_DEADLINE_MS = 3_600_000; // 1h
+export const MAX_DEADLINE_MS = 604_800_000; // 7d
+
+export const RATING_MIN = 1;
+export const RATING_MAX = 5;
+export const RATING_DEFAULT = 3;
+
+export const LISTING_STATUS_LABELS: Record<number, string> = {
+  0: "Active",
+  1: "Sold",
+  2: "Expired",
+  3: "Cancelled",
+};
+
+export const REQUEST_STATUS_LABELS: Record<number, string> = {
+  0: "Open",
+  1: "Reviewing",
+  2: "Completed",
+  3: "Cancelled",
+  4: "Expired",
+};
+
+export const EXPIRY_OPTIONS_V2 = [
+  { label: "1 hour", ms: 3_600_000 },
+  { label: "6 hours", ms: 21_600_000 },
+  { label: "24 hours", ms: 86_400_000 },
+  { label: "3 days", ms: 259_200_000 },
+  { label: "7 days", ms: 604_800_000 },
+];
+
+export const DEADLINE_OPTIONS = [
+  { label: "1 hour", ms: 3_600_000 },
+  { label: "6 hours", ms: 21_600_000 },
+  { label: "24 hours", ms: 86_400_000 },
+  { label: "3 days", ms: 259_200_000 },
+  { label: "7 days", ms: 604_800_000 },
+];
