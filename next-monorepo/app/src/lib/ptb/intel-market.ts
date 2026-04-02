@@ -175,14 +175,13 @@ export function buildAcceptAndRate(
 
 export function buildAutoSettle(
   tx: Transaction,
-  params: { requestId: string; profileId: string; firstSellerAddr: string },
+  params: { requestId: string; profileId: string },
 ) {
   tx.moveCall({
     target: `${PACKAGE_ID}::intel_market::auto_settle_request`,
     arguments: [
       tx.object(params.requestId),
       tx.object(params.profileId),
-      tx.pure.address(params.firstSellerAddr),
       tx.object(CLOCK_ID),
     ],
   });

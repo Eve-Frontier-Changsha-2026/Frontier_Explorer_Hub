@@ -172,7 +172,7 @@ module frontier_explorer_hub::intel_market_tests {
 
         scenario.next_tx(OUTSIDER);
         let mut listing = scenario.take_shared<intel_market::IntelListing>();
-        intel_market::expire_listing(&mut listing, &clk);
+        intel_market::expire_listing(&mut listing, &clk, scenario.ctx());
         assert!(intel_market::listing_status(&listing) == 2); // EXPIRED
         ts::return_shared(listing);
 
@@ -421,7 +421,7 @@ module frontier_explorer_hub::intel_market_tests {
         let mut request = scenario.take_shared<intel_market::IntelRequest>();
         let mut profile = scenario.take_shared<intel_market::SellerProfile>();
         intel_market::auto_settle_request(
-            &mut request, &mut profile, SELLER, &clk, scenario.ctx(),
+            &mut request, &mut profile, &clk, scenario.ctx(),
         );
         assert!(intel_market::request_status(&request) == 2); // COMPLETED
         ts::return_shared(request);
@@ -513,7 +513,7 @@ module frontier_explorer_hub::intel_market_tests {
         let mut request = scenario.take_shared<intel_market::IntelRequest>();
         let mut profile = scenario.take_shared<intel_market::SellerProfile>();
         intel_market::auto_settle_request(
-            &mut request, &mut profile, SELLER, &clk, scenario.ctx(),
+            &mut request, &mut profile, &clk, scenario.ctx(),
         );
 
         ts::return_shared(request);

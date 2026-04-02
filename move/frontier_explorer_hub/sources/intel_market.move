@@ -32,6 +32,7 @@ module frontier_explorer_hub::intel_market {
     const MIN_RATING: u8 = 1;
     const MAX_RATING: u8 = 5;
     const DEFAULT_RATING: u8 = 3;
+    const MAX_PRICE_MIST: u64 = 1_000_000_000_000_000; // 1M SUI — prevents weighted_score overflow
 
     // Request status
     const REQUEST_OPEN: u8 = 0;
@@ -79,6 +80,7 @@ module frontier_explorer_hub::intel_market {
     const EAlreadySubmitted: u64 = 327;
     const ERequestDeadlinePassed: u64 = 328;
     const EInvalidSealRequestId: u64 = 329;
+    const EPriceTooHigh: u64 = 330;
 
     // ═══════════════════════════════════════════════
     // Structs — Sell Mode
@@ -140,6 +142,7 @@ module frontier_explorer_hub::intel_market {
         deadline: u64,
         status: u8,
         first_submission_at: Option<u64>,
+        first_seller: Option<address>,
         submission_count: u64,
         selected_seller: Option<address>,
         created_at: u64,
@@ -311,6 +314,7 @@ module frontier_explorer_hub::intel_market {
         assert!(severity <= MAX_SEVERITY, EInvalidSeverity);
         assert!(expiry > clock.timestamp_ms(), EExpiryInPast);
         assert!(fee_coin.value() >= MIN_LISTING_FEE, EInsufficientFee);
+        assert!(price_mist <= MAX_PRICE_MIST, EPriceTooHigh);
 
         let listing = IntelListing {
             id: object::new(ctx),
@@ -383,7 +387,17 @@ module frontier_explorer_hub::intel_market {
         assert!(listing.buyer.is_none(), EHasBuyer);
         assert!(payment.value() >= listing.price_mist, EInsufficientPayment);
 
-        balance::join(&mut listing.payment, coin::into_balance(payment));
+        // Split exact price, refund overpayment
+        let mut pay_balance = coin::into_balance(payment);
+        let exact = pay_balance.split(listing.price_mist);
+        balance::join(&mut listing.payment, exact);
+        // Return change to buyer
+        let change_amt = pay_balance.value();
+        if (change_amt > 0) {
+            transfer::public_transfer(coin::from_balance(pay_balance, ctx), ctx.sender());
+        } else {
+            pay_balance.destroy_zero();
+        };
         listing.buyer = option::some(ctx.sender());
         listing.purchased_at = option::some(clock.timestamp_ms());
         listing.status = LISTING_SOLD;
@@ -492,11 +506,19 @@ module frontier_explorer_hub::intel_market {
     public fun expire_listing(
         listing: &mut IntelListing,
         clock: &Clock,
+        ctx: &mut TxContext,
     ) {
         assert!(listing.status == LISTING_ACTIVE, EListingNotActive);
         assert!(clock.timestamp_ms() >= listing.public_metadata.expiry, ENotExpired);
 
         listing.status = LISTING_EXPIRED;
+
+        // Refund listing fee to seller (expire ≠ cancel; seller didn't spam)
+        let fee_amt = listing.listing_fee.value();
+        if (fee_amt > 0) {
+            let fee_coin = coin::from_balance(listing.listing_fee.split(fee_amt), ctx);
+            transfer::public_transfer(fee_coin, listing.seller);
+        };
 
         event::emit(ListingExpiredEvent {
             listing_id: object::id(listing),
@@ -535,8 +557,10 @@ module frontier_explorer_hub::intel_market {
         assert!(intel_type < INTEL_TYPE_COUNT, EInvalidIntelType);
         assert!(description.length() <= MAX_DESCRIPTION_LENGTH, EDescriptionTooLong);
         let now = clock.timestamp_ms();
+        assert!(deadline > now, EDeadlineInvalid);
         let duration = deadline - now;
-        assert!(deadline > now && duration >= MIN_DEADLINE_MS && duration <= MAX_DEADLINE_MS, EDeadlineInvalid);
+        assert!(duration >= MIN_DEADLINE_MS && duration <= MAX_DEADLINE_MS, EDeadlineInvalid);
+        assert!(reward_coin.value() <= MAX_PRICE_MIST, EPriceTooHigh);
 
         let request = IntelRequest {
             id: object::new(ctx),
@@ -549,6 +573,7 @@ module frontier_explorer_hub::intel_market {
             deadline,
             status: REQUEST_OPEN,
             first_submission_at: option::none(),
+            first_seller: option::none(),
             submission_count: 0,
             selected_seller: option::none(),
             created_at: now,
@@ -595,6 +620,7 @@ module frontier_explorer_hub::intel_market {
         // First submission starts countdown
         if (request.first_submission_at.is_none()) {
             request.first_submission_at = option::some(now);
+            request.first_seller = option::some(ctx.sender());
             request.status = REQUEST_REVIEWING;
         };
 
@@ -667,7 +693,6 @@ module frontier_explorer_hub::intel_market {
     public fun auto_settle_request(
         request: &mut IntelRequest,
         profile: &mut SellerProfile,
-        first_seller: address,
         clock: &Clock,
         ctx: &mut TxContext,
     ) {
@@ -675,13 +700,8 @@ module frontier_explorer_hub::intel_market {
         let first_at = *request.first_submission_at.borrow();
         assert!(clock.timestamp_ms() > first_at + REVIEW_TIMEOUT_MS, EAutoSettleNotReady);
 
-        // Verify first_seller submitted
-        let key = SubmissionKey { seller: first_seller };
-        assert!(sui::dynamic_field::exists_(&request.id, key), ESellerNotFound);
-
-        // Verify this is actually the first submitter (by submitted_at)
-        let submission: &IntelSubmission = sui::dynamic_field::borrow(&request.id, key);
-        assert!(submission.submitted_at == first_at, ESellerNotFound);
+        // Use stored first_seller address (not gameable via same-ms submission)
+        let first_seller = *request.first_seller.borrow();
         assert!(profile.seller == first_seller, ENotSeller);
 
         let reward_amount = request.reward.value();
