@@ -57,6 +57,7 @@ Explorer 提交情報 → 聚合為熱力圖 → 訂閱者付費消費
 ┌──────────────────────▼───────────────────────────────────────────┐
 │                      ON-CHAIN LAYER (Sui Move)                    │
 │  admin │ intel │ subscription │ access │ bounty │ market │ marketplace │
+│  intel_market (dual-mode encrypted marketplace)                     │
 │        │       │              │        │ (wraps bounty_escrow)       │
 └──────────────────────────────────────────────────────────────────┘
 ```
@@ -75,6 +76,7 @@ Explorer 提交情報 → 聚合為熱力圖 → 訂閱者付費消費
 | **access** | `unlock_intel` 單次付費解鎖（含 `max_price` 滑點保護）、`PricingTable` 動態定價、reporter/platform 分潤（預設 70/30） |
 | **bounty** | Wrap `bounty_escrow` — `create_intel_bounty`、`submit_intel_proof`（驗證 region + type + reporter=hunter）、`verify_and_approve`、`resubmit_intel_proof` |
 | **market** | 情報上架 `list_intel`（固定價、max_buyers、加密 payload）、`purchase_intel`（seller/platform 分潤）、`delist_intel`、`seal_approve` 解密授權 |
+| **intel_market** | 雙模式加密情報市集：**Sell Mode** — `create_listing` 固定價上架 + Seal 加密 payload、`purchase_intel` 購買 + `mint_viewer_receipt` 解鎖、24h auto-release；**Bounty Mode** — `post_request` 懸賞需求（SUI escrow）、`fulfill_request` 提交 + `accept_submission` 確認、24h auto-settle 給首個提交者。含 `SellerProfile` 加權信譽系統（`weighted_score = Σ(rating × price)`）、listing fee 防 spam（0.01 SUI，成交退還）、`expire_listing` / `cancel_request` 退款 |
 | **marketplace** | Plugin 開發者 `register_plugin`、用戶 `use_plugin`（分潤）、admin `remove_plugin` 審核 |
 
 **關鍵設計決策：**
@@ -127,12 +129,13 @@ Explorer 提交情報 → 聚合為熱力圖 → 訂閱者付費消費
 | `/bounties` | 懸賞看板 — 列表 + 建立 |
 | `/bounties/[id]` | 懸賞詳情 — ProofTimeline、CountdownTimer、ActionPanel（submit/dispute/claim） |
 | `/subscribe` | 訂閱管理 — Tier 比較、購買/續約/升級 |
+| `/intel-market` | 加密情報市集 — Sell（上架瀏覽 + 1-click list&encrypt）、Bounty（懸賞需求 + 提交）、My Activity（個人交易紀錄） |
 | `/store` | Plugin 市集 — 瀏覽、購買 |
 | `/portal` | 連結管理 — 新增/排序/刪除書籤、iframe 預覽 |
 | `/portal/[id]` | 書籤 fullscreen 瀏覽（sidebar-aware layout） |
 | `/portal/view` | 公開分享（URL fallback route，不依賴 localStorage） |
 
-**Key Components：** CharacterName、PlayerCard、KillTicker、WorldStatusBar、RegionActivityPanel、Portal 系列（EmptyState / LinkList / Preview / AddLinkDialog / FullscreenBar）、Bounty 系列（ClaimTicketList / ProofTimeline / CountdownTimer / ActionPanel）
+**Key Components：** CharacterName、PlayerCard、KillTicker、WorldStatusBar、RegionActivityPanel、Portal 系列（EmptyState / LinkList / Preview / AddLinkDialog / FullscreenBar）、Bounty 系列（ClaimTicketList / ProofTimeline / CountdownTimer / ActionPanel）、Intel Market 系列（NewListingForm / IntelListingBrowser / IntelListingCard / PostRequestForm / IntelRequestBrowser / IntelRequestCard / MyActivity / CountdownTimer / RatingStars）
 
 ---
 
@@ -158,6 +161,27 @@ Utopia API ───poll 5min──→ UtopiaTracker → utopia_* tables ──�
 Frontend ← GET /api/world/status ← cached aggregate ──────────────────────┘
 ```
 
+### Intel Market — Sell Mode
+
+```
+① Seller → create_listing(title, price, region) → Listing shared object + listing_fee locked
+② Seller → set_encrypted_payload(listing, Seal-encrypted blob) → payload attached
+③ Buyer → purchase_intel(listing) → payment locked in Listing
+④ Buyer → mint_viewer_receipt(listing) → ViewerReceipt NFT + 24h countdown starts
+⑤ Seller → confirm_delivery(listing) → payment released to seller, listing_fee refunded
+   (超時) 24h 後 → permissionless auto_release() → payment released to seller
+```
+
+### Intel Market — Bounty Mode
+
+```
+① Requester → post_request(title, reward, deadline) → SUI escrowed in Request
+② Responder → fulfill_request(request, encrypted_payload) → Submission created, 24h countdown
+③ Requester → accept_submission(request, submission, rating) → reward released, SellerProfile updated
+   (超時) 24h 後 → auto_settle() → reward to first submission
+   (取消) Requester → cancel_request() → escrow refunded (if no submissions)
+```
+
 ### 懸賞生命週期
 
 ```
@@ -177,7 +201,7 @@ Frontend ← GET /api/world/status ← cached aggregate ────────
 |-------|------|----------|
 | Backend | 134 tests (14 files) | Indexer、Aggregator、API routes、Utopia/EVE EYES clients、WorldAggregator |
 | Frontend | 161 tests (36 files) | Components、hooks、pages、portal、bounty lifecycle、monkey tests |
-| Move | `sui move test` | intel submit/expire、subscription lifecycle、access unlock/pricing、bounty verification |
+| Move | 144 tests | intel submit/expire、subscription lifecycle、access unlock/pricing、bounty verification、intel_market dual-mode（16 unit + 15 monkey + 6 red-team rounds） |
 
 Monkey testing 涵蓋：極端輸入、concurrent 操作、斷線容錯、localStorage 清除後 rehydrate 行為。
 
