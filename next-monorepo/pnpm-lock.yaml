@@ -6,7 +6,11 @@ settings:
 
 importers:
 
-  .: {}
+  .:
+    dependencies:
+      '@mysten/seal':
+        specifier: ^1.1.1
+        version: 1.1.1(@mysten/sui@1.45.2(typescript@5.9.3))
 
   app:
     dependencies:
@@ -73,7 +77,7 @@ importers:
         version: 10.4.27(postcss@8.5.8)
       jsdom:
         specifier: ^27.0.0
-        version: 27.4.0(@noble/hashes@1.8.0)
+        version: 27.4.0(@noble/hashes@2.0.1)
       postcss:
         specifier: ^8.4.31
         version: 8.5.8
@@ -85,7 +89,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^3.2.4
-        version: 3.2.4(@types/node@22.19.15)(jiti@2.6.1)(jsdom@27.4.0(@noble/hashes@1.8.0))(lightningcss@1.32.0)
+        version: 3.2.4(@types/node@22.19.15)(jiti@2.6.1)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.32.0)
 
   packages/plugin-sdk:
     devDependencies:
@@ -94,7 +98,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^3.2.4
-        version: 3.2.4(@types/node@22.19.15)(jiti@2.6.1)(jsdom@27.4.0(@noble/hashes@1.8.0))(lightningcss@1.32.0)
+        version: 3.2.4(@types/node@22.19.15)(jiti@2.6.1)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.32.0)
 
 packages:
 
@@ -794,11 +798,19 @@ packages:
   '@mysten/bcs@1.9.2':
     resolution: {integrity: sha512-kBk5xrxV9OWR7i+JhL/plQrgQ2/KJhB2pB5gj+w6GXhbMQwS3DPpOvi/zN0Tj84jwPvHMllpEl0QHj6ywN7/eQ==}
 
+  '@mysten/bcs@2.0.3':
+    resolution: {integrity: sha512-dwcaL4HNAsEGpU3hKUAsXgCZp9l6++e2A3THpzoYZ8e7bsy4XH1V0dXD5dIzgNcVZiZfb6ZnDMG+gdF6+1WOQA==}
+
   '@mysten/dapp-kit@0.16.16':
     resolution: {integrity: sha512-5oP7WnMuXCZuqueWGZ4Ckl84ixy1d+63nqL+L3rjI+zTFjiqMV5CJTiugLLeSmmjlSMCG7Eneg+bB4Osrp58+A==}
     peerDependencies:
       '@tanstack/react-query': ^5.0.0
       react: '*'
+
+  '@mysten/seal@1.1.1':
+    resolution: {integrity: sha512-OGxEDmEuXQAzxJKz3ap1dkRSf5fD/iKpz/J8+wZlPbeSok2fVt3KPaCZngjrvqqVRn5lmQomNpzXQCKo929A3w==}
+    peerDependencies:
+      '@mysten/sui': ^2.8.0
 
   '@mysten/slush-wallet@0.1.16':
     resolution: {integrity: sha512-/g8vXNKI3TVKAhW3ss651hJVyB2R6X9I3OshH/NBLm0bD5kbnPmSKdP1rjr6xV4iMpArUkkZO9nIx7I8GjlwaQ==}
@@ -816,6 +828,9 @@ packages:
 
   '@mysten/utils@0.2.0':
     resolution: {integrity: sha512-CM6kJcJHX365cK6aXfFRLBiuyXc5WSBHQ43t94jqlCAIRw8umgNcTb5EnEA9n31wPAQgLDGgbG/rCUISCTJ66w==}
+
+  '@mysten/utils@0.3.1':
+    resolution: {integrity: sha512-36KhxG284uhDdSnlkyNaS6fzKTX9FpP2WQWOwUKIRsqQFFIm2ooCf2TP1IuqrtMpkairwpiWkAS0eg7cpemVzg==}
 
   '@mysten/wallet-standard@0.16.6':
     resolution: {integrity: sha512-VZUB6WpoBMUxUnZ/uLjJOnYt8D4gDsPe7S5DY25jIKSHXyWXzDWhXGSwRahjzWqBpCF8yjyRU833zpCLcIfaWg==}
@@ -888,9 +903,17 @@ packages:
     resolution: {integrity: sha512-gbKGcRUYIjA3/zCCNaWDciTMFI0dCkvou3TL8Zmy5Nc7sJ47a0jtOeZoTaMxkuqRo9cRhjOdZJXegxYE5FN/xw==}
     engines: {node: ^14.21.3 || >=16}
 
+  '@noble/curves@2.0.1':
+    resolution: {integrity: sha512-vs1Az2OOTBiP4q0pwjW5aF0xp9n4MxVrmkFBxc6EKZc6ddYx5gaZiAsZoq0uRRXWbi3AT/sBqn05eRPtn1JCPw==}
+    engines: {node: '>= 20.19.0'}
+
   '@noble/hashes@1.8.0':
     resolution: {integrity: sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==}
     engines: {node: ^14.21.3 || >=16}
+
+  '@noble/hashes@2.0.1':
+    resolution: {integrity: sha512-XlOlEbQcE9fmuXxrVTXCTlG2nlRXa9Rj3rr5Ue/+tX+nmkgbX720YHh0VR3hBF9xDvwnb8D2shVGOwNx+ulArw==}
+    engines: {node: '>= 20.19.0'}
 
   '@open-wc/dedupe-mixin@1.4.0':
     resolution: {integrity: sha512-Sj7gKl1TLcDbF7B6KUhtvr+1UCxdhMbNY5KxdU5IfMFWqL8oy1ZeAcCANjoB1TL0AJTcPmcCFsCbHf8X2jGDUA==}
@@ -1334,6 +1357,9 @@ packages:
 
   '@scure/base@1.2.6':
     resolution: {integrity: sha512-g/nm5FgUa//MCj1gV09zTJTaM6KBAHqLN907YVQqf7zC49+DcO4B1so4ZX07Ef10Twr6nuqYEH9GEggFXA4Fmg==}
+
+  '@scure/base@2.0.0':
+    resolution: {integrity: sha512-3E1kpuZginKkek01ovG8krQ0Z44E3DHPjc5S2rjJw9lZn3KSQOs8S7wqikF/AH7iRanHypj85uGyxk0XAyC37w==}
 
   '@scure/bip32@1.7.0':
     resolution: {integrity: sha512-E4FFX/N3f4B80AKWp5dP6ow+flD1LQZo/w8UnLGYZO674jS6YnYeepycOOksv+vLPSpgN35wgKgy+ybfTb2SMw==}
@@ -3765,9 +3791,9 @@ snapshots:
 
   '@esri/calcite-ui-icons@4.3.0': {}
 
-  '@exodus/bytes@1.15.0(@noble/hashes@1.8.0)':
+  '@exodus/bytes@1.15.0(@noble/hashes@2.0.1)':
     optionalDependencies:
-      '@noble/hashes': 1.8.0
+      '@noble/hashes': 2.0.1
 
   '@floating-ui/core@1.7.5':
     dependencies:
@@ -4117,6 +4143,11 @@ snapshots:
       '@mysten/utils': 0.2.0
       '@scure/base': 1.2.6
 
+  '@mysten/bcs@2.0.3':
+    dependencies:
+      '@mysten/utils': 0.3.1
+      '@scure/base': 2.0.0
+
   '@mysten/dapp-kit@0.16.16(@tanstack/react-query@5.91.3(react@18.3.1))(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3)':
     dependencies:
       '@mysten/slush-wallet': 0.1.16(typescript@5.9.3)
@@ -4142,6 +4173,13 @@ snapshots:
       - immer
       - react-dom
       - typescript
+
+  '@mysten/seal@1.1.1(@mysten/sui@1.45.2(typescript@5.9.3))':
+    dependencies:
+      '@mysten/bcs': 2.0.3
+      '@mysten/sui': 1.45.2(typescript@5.9.3)
+      '@noble/curves': 2.0.1
+      '@noble/hashes': 2.0.1
 
   '@mysten/slush-wallet@0.1.16(typescript@5.9.3)':
     dependencies:
@@ -4205,6 +4243,10 @@ snapshots:
     dependencies:
       '@scure/base': 1.2.6
 
+  '@mysten/utils@0.3.1':
+    dependencies:
+      '@scure/base': 2.0.0
+
   '@mysten/wallet-standard@0.16.6(typescript@5.9.3)':
     dependencies:
       '@mysten/sui': 1.36.1(typescript@5.9.3)
@@ -4257,7 +4299,13 @@ snapshots:
     dependencies:
       '@noble/hashes': 1.8.0
 
+  '@noble/curves@2.0.1':
+    dependencies:
+      '@noble/hashes': 2.0.1
+
   '@noble/hashes@1.8.0': {}
+
+  '@noble/hashes@2.0.1': {}
 
   '@open-wc/dedupe-mixin@1.4.0': {}
 
@@ -4631,6 +4679,8 @@ snapshots:
     optional: true
 
   '@scure/base@1.2.6': {}
+
+  '@scure/base@2.0.0': {}
 
   '@scure/bip32@1.7.0':
     dependencies:
@@ -5815,9 +5865,9 @@ snapshots:
     dependencies:
       function-bind: 1.1.2
 
-  html-encoding-sniffer@6.0.0(@noble/hashes@1.8.0):
+  html-encoding-sniffer@6.0.0(@noble/hashes@2.0.1):
     dependencies:
-      '@exodus/bytes': 1.15.0(@noble/hashes@1.8.0)
+      '@exodus/bytes': 1.15.0(@noble/hashes@2.0.1)
     transitivePeerDependencies:
       - '@noble/hashes'
 
@@ -5896,15 +5946,15 @@ snapshots:
 
   js-tokens@9.0.1: {}
 
-  jsdom@27.4.0(@noble/hashes@1.8.0):
+  jsdom@27.4.0(@noble/hashes@2.0.1):
     dependencies:
       '@acemir/cssom': 0.9.31
       '@asamuzakjp/dom-selector': 6.8.1
-      '@exodus/bytes': 1.15.0(@noble/hashes@1.8.0)
+      '@exodus/bytes': 1.15.0(@noble/hashes@2.0.1)
       cssstyle: 5.3.7
       data-urls: 6.0.1
       decimal.js: 10.6.0
-      html-encoding-sniffer: 6.0.0(@noble/hashes@1.8.0)
+      html-encoding-sniffer: 6.0.0(@noble/hashes@2.0.1)
       http-proxy-agent: 7.0.2
       https-proxy-agent: 7.0.6
       is-potential-custom-element-name: 1.0.1
@@ -6496,7 +6546,7 @@ snapshots:
       jiti: 2.6.1
       lightningcss: 1.32.0
 
-  vitest@3.2.4(@types/node@22.19.15)(jiti@2.6.1)(jsdom@27.4.0(@noble/hashes@1.8.0))(lightningcss@1.32.0):
+  vitest@3.2.4(@types/node@22.19.15)(jiti@2.6.1)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.32.0):
     dependencies:
       '@types/chai': 5.2.3
       '@vitest/expect': 3.2.4
@@ -6523,7 +6573,7 @@ snapshots:
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 22.19.15
-      jsdom: 27.4.0(@noble/hashes@1.8.0)
+      jsdom: 27.4.0(@noble/hashes@2.0.1)
     transitivePeerDependencies:
       - jiti
       - less
