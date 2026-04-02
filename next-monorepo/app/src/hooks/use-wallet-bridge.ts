@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useCurrentAccount, useSignAndExecuteTransaction } from "@mysten/dapp-kit";
 import { Transaction } from "@mysten/sui/transactions";
-import { fromBase64 } from "@mysten/bcs";
+import { fromBase64 } from "@mysten/sui/utils";
 import { WalletBridgeHost } from "@/lib/wallet-bridge/host";
 import { SUI_NETWORK } from "@/lib/constants";
 
