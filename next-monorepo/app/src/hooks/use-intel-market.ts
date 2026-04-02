@@ -90,16 +90,27 @@ function useSignExec() {
 
 export function useListIntel() {
   const { signAndExecute, addToast } = useSignExec();
+  const client = useSuiClient();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (params: Parameters<typeof buildListIntel>[1]) => {
       const tx = new Transaction();
       buildListIntel(tx, params);
-      return signAndExecute({ transaction: tx as never });
+      const result = await signAndExecute({ transaction: tx as never });
+      // Wait for TX and extract created IntelListing ID
+      const details = await client.waitForTransaction({
+        digest: result.digest,
+        options: { showObjectChanges: true },
+      });
+      const listing = details.objectChanges?.find(
+        (c) => c.type === "created" && c.objectType?.includes("::intel_market::IntelListing")
+      );
+      if (!listing || listing.type !== "created") throw new Error("Listing object not found in TX result");
+      return listing.objectId;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["intel-market"] });
-      addToast({ type: "success", message: "Intel listed! Complete encryption next." });
+      addToast({ type: "success", message: "Intel listed! Encrypting..." });
     },
     onError: (e) => addToast({ type: "error", message: `List failed: ${e.message}` }),
   });

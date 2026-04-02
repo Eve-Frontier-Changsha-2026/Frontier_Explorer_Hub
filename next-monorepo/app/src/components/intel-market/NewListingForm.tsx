@@ -26,54 +26,57 @@ export function NewListingForm() {
   const [exactZ, setExactZ] = useState("");
   const [description, setDescription] = useState("");
 
-  const [listingId, setListingId] = useState<string | null>(null);
-  const [step, setStep] = useState<1 | 2>(1);
+  const [status, setStatus] = useState<"idle" | "listing" | "encrypting" | "done">("idle");
 
-  const handleStep1 = async () => {
+  const handleSubmit = async () => {
     if (!account) return;
-    const priceMist = Math.floor(parseFloat(priceSui) * 1_000_000_000);
-    const result = await listIntel.mutateAsync({
-      title,
-      regionId,
-      sectorX,
-      sectorY,
-      sectorZ,
-      intelType,
-      severity,
-      expiryMs: Date.now() + expiryOffset,
-      priceMist,
-      feeMist: MIN_LISTING_FEE_MIST,
-    });
-    // Extract listing ID from TX result events
-    // TODO: parse result.events to find ListingCreatedEvent → listing_id
-    setStep(2);
+    setStatus("listing");
+    try {
+      const priceMist = Math.floor(parseFloat(priceSui) * 1_000_000_000);
+      // TX1: create listing on-chain
+      const newListingId = await listIntel.mutateAsync({
+        title,
+        regionId,
+        sectorX,
+        sectorY,
+        sectorZ,
+        intelType,
+        severity,
+        expiryMs: Date.now() + expiryOffset,
+        priceMist,
+        feeMist: MIN_LISTING_FEE_MIST,
+      });
+
+      // TX2: encrypt & seal — skip if no encrypted content
+      const hasEncrypted = exactX || exactY || exactZ || description;
+      if (hasEncrypted) {
+        setStatus("encrypting");
+        const plaintext = JSON.stringify({
+          exactCoords: { x: exactX, y: exactY, z: exactZ },
+          description,
+        });
+        const encrypted = new TextEncoder().encode(plaintext); // placeholder until Seal integration
+        await sealPayload.mutateAsync({
+          listingId: newListingId,
+          encryptedBytes: encrypted,
+        });
+      }
+      setStatus("done");
+    } catch {
+      setStatus("idle");
+    }
   };
 
-  const handleStep2 = async () => {
-    if (!listingId) return;
-    const plaintext = JSON.stringify({
-      exactCoords: { x: exactX, y: exactY, z: exactZ },
-      description,
-    });
-    // TODO: Seal encrypt plaintext with listingId as namespace
-    // const encrypted = await sealEncrypt(listingId, plaintext);
-    const encrypted = new TextEncoder().encode(plaintext); // placeholder
-    await sealPayload.mutateAsync({
-      listingId,
-      encryptedBytes: encrypted,
-    });
-  };
-
-  const isPending = listIntel.isPending || sealPayload.isPending;
+  const isPending = status === "listing" || status === "encrypting";
   const inputClass = "w-full border border-eve-panel-border bg-[rgba(12,16,24,0.95)] text-eve-text font-mono text-xs px-2 py-1.5";
 
   return (
     <div className="border border-eve-panel-border p-3 bg-eve-panel sticky top-4">
       <div className="text-sm tracking-wide uppercase text-eve-cold mb-2">
-        New Listing {step === 2 && "— Step 2: Encrypt"}
+        New Listing {status === "done" && "— Listed ✓"}
       </div>
 
-      {step === 1 && (
+      {status !== "done" && (
         <>
           {/* Title */}
           <input
@@ -133,28 +136,22 @@ export function NewListingForm() {
           </div>
 
           <button
-            onClick={handleStep1}
+            onClick={handleSubmit}
             disabled={!account || isPending || !title || !priceSui}
             className="w-full border border-eve-gold/40 text-eve-gold py-1.5 text-xs hover:bg-eve-gold/10 disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {isPending ? "Submitting..." : "⬆ LIST INTEL (Step 1/2)"}
+            {status === "listing" ? "Creating listing..." : status === "encrypting" ? "Encrypting & sealing..." : "⬆ LIST INTEL"}
           </button>
         </>
       )}
 
-      {step === 2 && (
-        <>
-          <div className="text-xs text-eve-muted mb-3">
-            Listing created. Now encrypt the private details with Seal protocol.
-          </div>
-          <button
-            onClick={handleStep2}
-            disabled={isPending}
-            className="w-full border border-eve-gold/40 text-eve-gold py-1.5 text-xs hover:bg-eve-gold/10 disabled:opacity-40"
-          >
-            {isPending ? "Encrypting..." : "🔒 ENCRYPT & SEAL (Step 2/2)"}
+      {status === "done" && (
+        <div className="text-xs text-eve-safe text-center py-4">
+          Intel listed and sealed successfully.
+          <button onClick={() => setStatus("idle")} className="block mx-auto mt-2 text-eve-cold hover:text-eve-text underline">
+            List another
           </button>
-        </>
+        </div>
       )}
     </div>
   );

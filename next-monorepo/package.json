@@ -1,8 +1,14 @@
 {
   "name": "frontier-explorer-hub",
   "private": true,
-  "workspaces": ["app", "packages/*"],
+  "workspaces": [
+    "app",
+    "packages/*"
+  ],
   "scripts": {
     "test": "npm run -w app test && npm run -w @explorer-hub/plugin-sdk test"
+  },
+  "dependencies": {
+    "@mysten/seal": "^1.1.1"
   }
 }
