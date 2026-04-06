@@ -476,3 +476,28 @@ export interface EveEyesRouteResponse {
 }
 
 export type EveEyesBuildingModuleName = 'assembly' | 'gate' | 'network_node' | 'storage_unit' | 'turret';
+
+// ── System Heatmap types ────────────────────────────────────────
+
+export interface SystemHeatmapNode {
+  systemId: string;
+  systemName: string;
+  killCount: number;
+  intelCount: number;
+  gateTraffic: number;
+  marketActivity: number;
+  intensity: number;
+  latestEventAt: number;
+  updatedAt: number;
+}
+
+export interface SystemHeatmapLink {
+  from: string;
+  to: string;
+}
+
+export interface SystemHeatmapResponse {
+  systems: SystemHeatmapNode[];
+  links: SystemHeatmapLink[];
+  generatedAt: string;
+}

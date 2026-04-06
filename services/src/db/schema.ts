@@ -242,5 +242,21 @@ export function initSchema(db: Database.Database): void {
       status_json TEXT NOT NULL,
       updated_at  INTEGER NOT NULL
     );
+
+    -- ── System-based heatmap ───────────────────────────────────────
+
+    CREATE TABLE IF NOT EXISTS heatmap_systems (
+      system_id        TEXT PRIMARY KEY,
+      system_name      TEXT NOT NULL,
+      kill_count       INTEGER NOT NULL DEFAULT 0,
+      intel_count      INTEGER NOT NULL DEFAULT 0,
+      gate_traffic     INTEGER NOT NULL DEFAULT 0,
+      market_activity  INTEGER NOT NULL DEFAULT 0,
+      intensity        REAL NOT NULL DEFAULT 0,
+      latest_event_at  INTEGER NOT NULL DEFAULT 0,
+      updated_at       INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_heatmap_systems_intensity
+      ON heatmap_systems(intensity);
   `);
 }

@@ -367,3 +367,27 @@ export const REQUEST_STATUS = {
   CANCELLED: 3,
   EXPIRED: 4,
 } as const;
+
+// ── System Heatmap ──────────────────────────────────────────────
+
+export interface SystemNode {
+  systemId: string;
+  systemName: string;
+  killCount: number;
+  intelCount: number;
+  gateTraffic: number;
+  marketActivity: number;
+  intensity: number;
+  latestEventAt: number;
+}
+
+export interface SystemLink {
+  from: string;
+  to: string;
+}
+
+export interface SystemHeatmapData {
+  systems: SystemNode[];
+  links: SystemLink[];
+  generatedAt: string;
+}

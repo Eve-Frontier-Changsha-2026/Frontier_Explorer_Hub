@@ -1,5 +1,6 @@
 import type Database from 'better-sqlite3';
 import { aggregateHeatmap } from './pipeline.js';
+import { aggregateSystemHeatmap } from './system-heatmap.js';
 
 export interface SchedulerConfig {
   kAnonymityThreshold: number;
@@ -33,6 +34,7 @@ export class AggregationScheduler {
   runOnce(): void {
     try {
       aggregateHeatmap(this.db, this.config.kAnonymityThreshold);
+      aggregateSystemHeatmap(this.db);
     } catch (err) {
       console.error('[AggregationScheduler] pipeline error:', err);
     }

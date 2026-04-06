@@ -16,6 +16,9 @@ export interface MapState {
   filters: MapFilters;
   selectedIntelId: string | null;
   selectedRegionId: number | null;
+  selectedSystemId: string | null;
+  heatmapSidebarOpen: boolean;
+  centerOnSystemId: string | null; // set to trigger centering, canvas clears after handling
   setZoomLevel: (z: number) => void;
   setCenterRegion: (id: number | null) => void;
   setViewportBounds: (bounds: MapState["viewportBounds"]) => void;
@@ -23,6 +26,10 @@ export interface MapState {
   setFilters: (f: Partial<MapFilters>) => void;
   selectIntel: (id: string | null) => void;
   selectRegion: (id: number | null) => void;
+  selectSystem: (id: string | null) => void;
+  toggleHeatmapSidebar: () => void;
+  centerOnSystem: (id: string) => void;
+  clearCenterOn: () => void;
   resetFilters: () => void;
 }
 
@@ -42,6 +49,9 @@ export const useMapStore = create<MapState>((set) => ({
   filters: { ...DEFAULT_FILTERS },
   selectedIntelId: null,
   selectedRegionId: null,
+  selectedSystemId: null,
+  heatmapSidebarOpen: true,
+  centerOnSystemId: null,
   setZoomLevel: (z) => set({ zoomLevel: Math.min(2, Math.max(0, z)) }),
   setCenterRegion: (id) => set({ centerRegionId: id }),
   setViewportBounds: (bounds) => set({ viewportBounds: bounds }),
@@ -54,5 +64,9 @@ export const useMapStore = create<MapState>((set) => ({
   setFilters: (f) => set((s) => ({ filters: { ...s.filters, ...f } })),
   selectIntel: (id) => set({ selectedIntelId: id }),
   selectRegion: (id) => set({ selectedRegionId: id }),
+  selectSystem: (id) => set({ selectedSystemId: id }),
+  toggleHeatmapSidebar: () => set((s) => ({ heatmapSidebarOpen: !s.heatmapSidebarOpen })),
+  centerOnSystem: (id) => set({ centerOnSystemId: id, selectedSystemId: id, heatmapSidebarOpen: true }),
+  clearCenterOn: () => set({ centerOnSystemId: null }),
   resetFilters: () => set({ filters: { ...DEFAULT_FILTERS } })
 }));

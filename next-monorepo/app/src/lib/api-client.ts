@@ -1,5 +1,5 @@
 import { API_BASE_URL } from "./constants";
-import type { AggregatedCell, IntelReport, BountyRequest, BountyDetail, SubscriptionStatus, IntelListing, MarketReceipt, SellerReputation, RegionSummary, CharacterInfo, WorldStatus } from "@/types";
+import type { AggregatedCell, IntelReport, BountyRequest, BountyDetail, SubscriptionStatus, IntelListing, MarketReceipt, SellerReputation, RegionSummary, CharacterInfo, WorldStatus, SystemHeatmapData } from "@/types";
 
 let jwtToken: string | null = null;
 
@@ -143,4 +143,8 @@ export function searchEveEyesSystems(query: string) {
 
 export function getEveEyesSystemDetail(id: number) {
   return apiFetch<import("@/types").SystemDetail>(`/api/eve-eyes/systems/${id}`);
+}
+
+export function getSystemHeatmap() {
+  return apiFetch<SystemHeatmapData>("/api/heatmap/systems");
 }

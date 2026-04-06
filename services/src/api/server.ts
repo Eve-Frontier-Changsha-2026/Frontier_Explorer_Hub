@@ -12,6 +12,7 @@ import { createRegionRouter } from './routes/region.js';
 import { createWorldRouter } from './routes/world.js';
 import { createEveEyesRouter } from './routes/eve-eyes.js';
 import { createCharacterRouter } from './routes/character.js';
+import { createSystemHeatmapRouter } from './routes/system-heatmap.js';
 import { CharacterResolver } from '../eve-eyes/character-resolver.js';
 import { config } from '../config.js';
 
@@ -38,7 +39,8 @@ export function createApp(opts: CreateAppOptions): express.Express {
     res.json({ status: 'ok', timestamp: Date.now() });
   });
 
-  // Routes
+  // Routes (system-heatmap before generic heatmap — /heatmap/systems must match before /heatmap/:zoomLevel)
+  app.use('/api', createSystemHeatmapRouter(db));
   app.use('/api', createHeatmapRouter(db));
   app.use('/api', createIntelRouter(db));
   app.use('/api', createSubscriptionRouter(db));
