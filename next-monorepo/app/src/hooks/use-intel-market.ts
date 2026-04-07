@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSignAndExecuteTransaction, useSuiClient, useCurrentAccount } from "@mysten/dapp-kit";
 import { Transaction } from "@mysten/sui/transactions";
+import { useSignPersonalMessage } from "@mysten/dapp-kit";
 import { useUIStore } from "@/stores/ui-store";
+import { sealEncrypt, sealDecryptListing, sealDecryptRequest, createSessionKey } from "@/lib/seal";
 import {
   buildListIntel,
   buildSetEncryptedPayload,
@@ -135,16 +137,28 @@ export function useSetEncryptedPayload() {
 
 export function usePurchaseIntel() {
   const { signAndExecute, addToast } = useSignExec();
+  const client = useSuiClient();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (params: Parameters<typeof buildPurchaseIntel>[1]) => {
       const tx = new Transaction();
       buildPurchaseIntel(tx, params);
-      return signAndExecute({ transaction: tx as never });
+      const result = await signAndExecute({ transaction: tx as never });
+      // Wait for TX and extract ListingViewerReceipt ID
+      const details = await client.waitForTransaction({
+        digest: result.digest,
+        options: { showObjectChanges: true },
+      });
+      const receipt = details.objectChanges?.find(
+        (c: { type: string; objectType?: string }) =>
+          c.type === "created" && c.objectType?.includes("::intel_market::ListingViewerReceipt")
+      );
+      if (!receipt || receipt.type !== "created") throw new Error("Receipt not found in TX result");
+      return { digest: result.digest, receiptId: (receipt as { objectId: string }).objectId, listingId: params.listingId };
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["intel-market"] });
-      addToast({ type: "success", message: "Intel purchased! Decrypt to view." });
+      addToast({ type: "success", message: "Intel purchased! Decrypting..." });
     },
     onError: (e) => addToast({ type: "error", message: `Purchase failed: ${e.message}` }),
   });
@@ -190,16 +204,24 @@ export function usePostRequest() {
 
 export function useFulfillRequest() {
   const { signAndExecute, addToast } = useSignExec();
+  const client = useSuiClient();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (params: Parameters<typeof buildFulfillRequest>[1]) => {
+    mutationFn: async (params: {
+      requestId: string;
+      plaintext: string;
+    }) => {
+      const encryptedPayload = await sealEncrypt(client, params.plaintext, params.requestId);
       const tx = new Transaction();
-      buildFulfillRequest(tx, params);
+      buildFulfillRequest(tx, {
+        requestId: params.requestId,
+        encryptedPayload,
+      });
       return signAndExecute({ transaction: tx as never });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["intel-market"] });
-      addToast({ type: "success", message: "Intel submitted to bounty." });
+      addToast({ type: "success", message: "Intel submitted and sealed." });
     },
     onError: (e) => addToast({ type: "error", message: `Fulfill failed: ${e.message}` }),
   });
@@ -253,5 +275,102 @@ export function useCancelRequest() {
       addToast({ type: "success", message: "Request cancelled. Reward refunded." });
     },
     onError: (e) => addToast({ type: "error", message: `Cancel failed: ${e.message}` }),
+  });
+}
+
+// ═══════════════════════════════════════════════
+// Decrypt hooks
+// ═══════════════════════════════════════════════
+
+/**
+ * Decrypt a purchased listing's encrypted payload.
+ * Creates a session key (one wallet signature), then decrypts.
+ */
+export function useDecryptListing() {
+  const client = useSuiClient();
+  const account = useCurrentAccount();
+  const { mutateAsync: signPersonalMessage } = useSignPersonalMessage();
+  const addToast = useUIStore((s) => s.addToast);
+
+  return useMutation({
+    mutationFn: async (params: { listingId: string; receiptId: string }) => {
+      if (!account) throw new Error("Wallet not connected");
+
+      // 1. Fetch encrypted payload from chain
+      const obj = await client.getObject({
+        id: params.listingId,
+        options: { showContent: true },
+      });
+      const content = obj.data?.content;
+      if (!content || content.dataType !== "moveObject") throw new Error("Listing not found");
+      const fields = content.fields as Record<string, unknown>;
+      const payloadArr = fields.encrypted_payload as number[];
+      if (!payloadArr || payloadArr.length === 0) throw new Error("No encrypted payload");
+      const encryptedPayload = new Uint8Array(payloadArr);
+
+      // 2. Create session key (one wallet sign)
+      const sessionKey = await createSessionKey(
+        client,
+        account.address,
+        signPersonalMessage,
+      );
+
+      // 3. Decrypt
+      return sealDecryptListing(client, sessionKey, encryptedPayload, params.receiptId);
+    },
+    onSuccess: () => {
+      addToast({ type: "success", message: "Intel decrypted successfully." });
+    },
+    onError: (e) => {
+      addToast({ type: "error", message: `Decryption failed: ${e.message}` });
+    },
+  });
+}
+
+/**
+ * Decrypt a bounty request's submitted intel.
+ */
+export function useDecryptRequest() {
+  const client = useSuiClient();
+  const account = useCurrentAccount();
+  const { mutateAsync: signPersonalMessage } = useSignPersonalMessage();
+  const addToast = useUIStore((s) => s.addToast);
+
+  return useMutation({
+    mutationFn: async (params: { requestId: string; receiptId: string }) => {
+      if (!account) throw new Error("Wallet not connected");
+
+      // 1. Fetch encrypted payload from request's submission
+      const dynFields = await client.getDynamicFields({ parentId: params.requestId });
+      const submissionField = dynFields.data.find(
+        (f: { objectType?: string }) => f.objectType?.includes("IntelSubmission")
+      );
+      if (!submissionField) throw new Error("No submission found");
+      const submissionObj = await client.getObject({
+        id: submissionField.objectId,
+        options: { showContent: true },
+      });
+      const subContent = submissionObj.data?.content;
+      if (!subContent || subContent.dataType !== "moveObject") throw new Error("Submission not found");
+      const subFields = subContent.fields as Record<string, unknown>;
+      const payloadArr = subFields.encrypted_payload as number[];
+      const encryptedPayload = new Uint8Array(payloadArr);
+
+      // 2. Create session key
+      const sessionKey = await createSessionKey(
+        client,
+        account.address,
+        signPersonalMessage,
+      );
+
+      // 3. Decrypt
+      return sealDecryptRequest(client, sessionKey, encryptedPayload, params.receiptId);
+    },
+    onSuccess: () => {
+      addToast({ type: "success", message: "Bounty intel decrypted." });
+    },
+    onError: (e) => {
+      addToast({ type: "error", message: `Decryption failed: ${e.message}` });
+    },
   });
 }

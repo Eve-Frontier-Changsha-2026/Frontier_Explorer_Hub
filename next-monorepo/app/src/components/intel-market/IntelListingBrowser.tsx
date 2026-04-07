@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useIntelListings } from "@/hooks/use-intel-market";
+import { useState } from "react";
+import { useIntelListings, usePurchaseIntel, useDecryptListing } from "@/hooks/use-intel-market";
 import { IntelListingCard } from "./IntelListingCard";
+import { DecryptedIntelView } from "./DecryptedIntelView";
 import { INTEL_TYPE_LABELS } from "@/lib/constants";
 
 const SORT_OPTIONS = [
@@ -14,12 +15,33 @@ const SORT_OPTIONS = [
 
 export function IntelListingBrowser({ onBuy }: { onBuy?: (listingId: string) => void }) {
   const { data: listings, isLoading } = useIntelListings();
+  const purchaseIntel = usePurchaseIntel();
+  const decryptListing = useDecryptListing();
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<number | null>(null);
   const [sort, setSort] = useState<string>("newest");
+  const [decryptedData, setDecryptedData] = useState<{ exactCoords: { x: string; y: string; z: string }; description: string } | null>(null);
+  const [decryptError, setDecryptError] = useState<string | null>(null);
+  const [isDecrypting, setIsDecrypting] = useState(false);
+  const [activeListingId, setActiveListingId] = useState<string | null>(null);
 
-  // Filtering and sorting would happen here once data model is connected
-  // For now, render event-based data
+  const handleBuy = async (listingId: string, priceMist: number) => {
+    try {
+      setDecryptedData(null);
+      setDecryptError(null);
+      setActiveListingId(listingId);
+      // 1. Purchase
+      const { receiptId } = await purchaseIntel.mutateAsync({ listingId, priceMist });
+      // 2. Auto-decrypt
+      setIsDecrypting(true);
+      const data = await decryptListing.mutateAsync({ listingId, receiptId });
+      setDecryptedData(data);
+    } catch (e) {
+      setDecryptError(e instanceof Error ? e.message : "Unknown error");
+    } finally {
+      setIsDecrypting(false);
+    }
+  };
 
   return (
     <div className="border border-eve-panel-border p-3 bg-eve-panel">
@@ -83,6 +105,15 @@ export function IntelListingBrowser({ onBuy }: { onBuy?: (listingId: string) => 
           No listings yet. Be the first to sell intel.
         </div>
       </div>
+
+      {activeListingId && (
+        <DecryptedIntelView
+          data={decryptedData}
+          isDecrypting={isDecrypting}
+          error={decryptError}
+          onRetry={() => handleBuy(activeListingId, 0)}
+        />
+      )}
     </div>
   );
 }

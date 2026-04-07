@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useCurrentAccount } from "@mysten/dapp-kit";
+import { useCurrentAccount, useSuiClient } from "@mysten/dapp-kit";
 import { useListIntel, useSetEncryptedPayload } from "@/hooks/use-intel-market";
+import { sealEncrypt } from "@/lib/seal";
 import { INTEL_TYPE_LABELS, EXPIRY_OPTIONS_V2, MIN_LISTING_FEE_MIST } from "@/lib/constants";
 
 export function NewListingForm() {
   const account = useCurrentAccount();
+  const suiClient = useSuiClient();
   const listIntel = useListIntel();
   const sealPayload = useSetEncryptedPayload();
 
@@ -55,7 +57,7 @@ export function NewListingForm() {
           exactCoords: { x: exactX, y: exactY, z: exactZ },
           description,
         });
-        const encrypted = new TextEncoder().encode(plaintext); // placeholder until Seal integration
+        const encrypted = await sealEncrypt(suiClient, plaintext, newListingId);
         await sealPayload.mutateAsync({
           listingId: newListingId,
           encryptedBytes: encrypted,
