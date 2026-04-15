@@ -29,6 +29,7 @@ export function IntelListingCard({ listing, sellerRating, sellerTrades, onBuy, o
   const meta = listing.publicMetadata;
   const typeColor = TYPE_COLORS[meta.intelType] ?? "text-eve-muted";
   const icon = TYPE_ICONS[meta.intelType] ?? "?";
+  const isExpired = meta.expiry > 0 && Date.now() > meta.expiry;
 
   return (
     <div className="border border-eve-panel-border/40 bg-[rgba(8,11,16,0.84)] p-2 cursor-pointer hover:border-eve-panel-border/60">
@@ -50,7 +51,7 @@ export function IntelListingCard({ listing, sellerRating, sellerTrades, onBuy, o
           <CountdownTimer targetMs={meta.expiry} />
         </div>
         <div className="flex gap-1">
-          {listing.status === 0 && !isMine && onBuy && (
+          {listing.status === 0 && !isExpired && !isMine && onBuy && (
             <button
               onClick={(e) => { e.stopPropagation(); onBuy(); }}
               className="text-[0.6rem] border border-eve-gold/40 text-eve-gold px-1.5 py-0.5 hover:bg-eve-gold/10"
