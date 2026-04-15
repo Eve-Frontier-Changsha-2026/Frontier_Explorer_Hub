@@ -29,10 +29,12 @@ export function NewListingForm() {
   const [description, setDescription] = useState("");
 
   const [status, setStatus] = useState<"idle" | "listing" | "encrypting" | "done">("idle");
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
     if (!account) return;
     setStatus("listing");
+    setError(null);
     try {
       const priceMist = Math.floor(parseFloat(priceSui) * 1_000_000_000);
       // TX1: create listing on-chain
@@ -57,14 +59,30 @@ export function NewListingForm() {
           exactCoords: { x: exactX, y: exactY, z: exactZ },
           description,
         });
-        const encrypted = await sealEncrypt(suiClient, plaintext, newListingId);
-        await sealPayload.mutateAsync({
-          listingId: newListingId,
-          encryptedBytes: encrypted,
-        });
+        try {
+          const encrypted = await sealEncrypt(suiClient, plaintext, newListingId);
+          await sealPayload.mutateAsync({
+            listingId: newListingId,
+            encryptedBytes: encrypted,
+          });
+        } catch (sealErr) {
+          const msg = sealErr instanceof Error ? sealErr.message : String(sealErr);
+          console.error("[Seal encrypt failed]", sealErr);
+          setError(`Listed but seal failed: ${msg}. Listing is NOT buyable until sealed.`);
+          setStatus("idle");
+          return;
+        }
+      } else {
+        // No encrypted content — listing won't be buyable (ENotSealed)
+        setError("Warning: No encrypted data provided. Listing cannot be purchased without sealed payload.");
+        setStatus("done");
+        return;
       }
       setStatus("done");
-    } catch {
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error("[List failed]", e);
+      setError(msg);
       setStatus("idle");
     }
   };
@@ -144,6 +162,11 @@ export function NewListingForm() {
           >
             {status === "listing" ? "Creating listing..." : status === "encrypting" ? "Encrypting & sealing..." : "⬆ LIST INTEL"}
           </button>
+          {error && (
+            <div className="mt-2 text-[0.6rem] text-eve-danger border border-eve-danger/30 p-2 bg-eve-danger/5">
+              {error}
+            </div>
+          )}
         </>
       )}
 
