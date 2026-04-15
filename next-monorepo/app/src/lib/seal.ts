@@ -17,6 +17,7 @@ const TESTNET_KEY_SERVERS = [
 let _client: SealClient | null = null;
 let _sessionKey: SessionKey | null = null;
 let _sessionKeyExpiry = 0;
+let _sessionKeyAddress = "";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- SuiClient is structurally compatible with SealCompatibleClient
 export function getSealClient(suiClient: AnySuiClient): SealClient {
@@ -39,10 +40,11 @@ export async function getOrCreateSessionKey(
   address: string,
   signPersonalMessage: (params: { message: Uint8Array }) => Promise<{ signature: string }>,
 ): Promise<SessionKey> {
-  if (_sessionKey && Date.now() < _sessionKeyExpiry) return _sessionKey;
+  if (_sessionKey && Date.now() < _sessionKeyExpiry && _sessionKeyAddress === address) return _sessionKey;
   const sk = await createSessionKey(suiClient, address, signPersonalMessage);
   _sessionKey = sk;
   _sessionKeyExpiry = Date.now() + 9 * 60 * 1000; // 9 min (slightly under 10-min TTL)
+  _sessionKeyAddress = address;
   return sk;
 }
 
@@ -54,22 +56,13 @@ export async function sealDecryptListingWithKey(
   sessionKey: SessionKey,
   listingId: string,
   receiptId: string,
-): Promise<{ exactCoords: { x: string; y: string; z: string }; description: string }> {
+  receiptRef?: { objectId: string; version: string; digest: string },
+): Promise<{ exactCoords: { x: string; y: string; z: string } | null; description: string }> {
   const getObj = (id: string) =>
     (suiClient as { getObject: (opts: { id: string; options: { showContent: boolean } }) => Promise<{ data?: { content?: { dataType: string; fields: Record<string, unknown> } } }> }).getObject({
       id,
       options: { showContent: true },
     });
-
-  // Wait for receipt object to be indexed by fullnode (just created by purchase TX)
-  for (let i = 0; i < 5; i++) {
-    try {
-      await getObj(receiptId);
-      break;
-    } catch {
-      await new Promise((r) => setTimeout(r, 1500));
-    }
-  }
 
   // Fetch encrypted payload from chain
   const client = getSealClient(suiClient);
@@ -82,11 +75,16 @@ export async function sealDecryptListingWithKey(
   const encryptedPayload = new Uint8Array(payloadArr);
 
   const tx = new Transaction();
+  // Use objectRef when available (fresh purchase — fullnode may not have indexed yet)
+  // Fall back to tx.object() for retry/manual decrypt (receipt already indexed)
+  const receiptArg = receiptRef
+    ? tx.objectRef({ objectId: receiptRef.objectId, version: receiptRef.version, digest: receiptRef.digest })
+    : tx.object(receiptId);
   tx.moveCall({
     target: `${PACKAGE_ID}::intel_market::seal_approve_listing`,
     arguments: [
       tx.pure.vector("u8", Array.from(fromHex(EncryptedObject.parse(encryptedPayload).id))),
-      tx.object(receiptId),
+      receiptArg,
     ],
   });
   const txBytes = await tx.build({ client: suiClient, onlyTransactionKind: true });
@@ -96,7 +94,12 @@ export async function sealDecryptListingWithKey(
     sessionKey,
     txBytes,
   });
-  return JSON.parse(new TextDecoder().decode(decryptedBytes));
+  const text = new TextDecoder().decode(decryptedBytes);
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { exactCoords: null, description: text };
+  }
 }
 
 /**
@@ -167,18 +170,8 @@ export async function sealDecryptListing(
   sessionKey: SessionKey,
   encryptedPayload: Uint8Array,
   receiptId: string,
-): Promise<{ exactCoords: { x: string; y: string; z: string }; description: string }> {
+): Promise<{ exactCoords: { x: string; y: string; z: string } | null; description: string }> {
   const client = getSealClient(suiClient);
-
-  // Wait for receipt object to be indexed by fullnode
-  for (let i = 0; i < 5; i++) {
-    try {
-      await suiClient.getObject({ id: receiptId, options: { showContent: false } });
-      break;
-    } catch {
-      await new Promise((r) => setTimeout(r, 1500));
-    }
-  }
 
   const tx = new Transaction();
   tx.moveCall({
@@ -195,7 +188,12 @@ export async function sealDecryptListing(
     sessionKey,
     txBytes,
   });
-  return JSON.parse(new TextDecoder().decode(decryptedBytes));
+  const text = new TextDecoder().decode(decryptedBytes);
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { exactCoords: null, description: text };
+  }
 }
 
 /**
@@ -207,7 +205,7 @@ export async function sealDecryptRequest(
   sessionKey: SessionKey,
   encryptedPayload: Uint8Array,
   receiptId: string,
-): Promise<{ exactCoords: { x: string; y: string; z: string }; description: string }> {
+): Promise<{ exactCoords: { x: string; y: string; z: string } | null; description: string }> {
   const client = getSealClient(suiClient);
 
   const tx = new Transaction();
@@ -225,5 +223,11 @@ export async function sealDecryptRequest(
     sessionKey,
     txBytes,
   });
-  return JSON.parse(new TextDecoder().decode(decryptedBytes));
+  const text = new TextDecoder().decode(decryptedBytes);
+  try {
+    return JSON.parse(text);
+  } catch {
+    // Plain text submission (not JSON-structured)
+    return { exactCoords: null, description: text };
+  }
 }

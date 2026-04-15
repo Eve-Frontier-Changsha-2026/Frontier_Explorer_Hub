@@ -138,6 +138,13 @@ export function buildPostRequest(
   });
 }
 
+export function buildCreateSellerProfile(tx: Transaction) {
+  tx.moveCall({
+    target: `${PACKAGE_ID}::intel_market::create_seller_profile`,
+    arguments: [tx.object(CLOCK_ID)],
+  });
+}
+
 export function buildFulfillRequest(
   tx: Transaction,
   params: { requestId: string; encryptedPayload: Uint8Array },

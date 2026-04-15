@@ -1,7 +1,7 @@
 "use client";
 
 interface DecryptedIntel {
-  exactCoords: { x: string; y: string; z: string };
+  exactCoords: { x: string; y: string; z: string } | null;
   description: string;
 }
 
@@ -44,7 +44,7 @@ export function DecryptedIntelView({ data, isDecrypting, error, onRetry }: Props
   return (
     <div className="border border-eve-gold/30 bg-[rgba(228,180,128,0.04)] p-3 mt-2">
       <div className="text-[0.6rem] text-eve-gold mb-1.5">DECRYPTED INTEL</div>
-      {(data.exactCoords.x || data.exactCoords.y || data.exactCoords.z) && (
+      {data.exactCoords && (data.exactCoords.x || data.exactCoords.y || data.exactCoords.z) && (
         <div className="text-[0.65rem] text-eve-text mb-1">
           <span className="text-eve-muted">Exact Coords:</span>{" "}
           ({data.exactCoords.x}, {data.exactCoords.y}, {data.exactCoords.z})

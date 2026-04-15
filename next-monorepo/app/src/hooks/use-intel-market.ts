@@ -13,6 +13,7 @@ import {
   buildCancelListing,
   buildPostRequest,
   buildFulfillRequest,
+  buildCreateSellerProfile,
   buildAcceptAndRate,
   buildAutoSettle,
   buildCancelRequest,
@@ -81,13 +82,40 @@ export function useIntelRequests() {
   const client = useSuiClient();
   return useQuery({
     queryKey: ["intel-market", "requests"],
-    queryFn: async () => {
+    queryFn: async (): Promise<IntelRequestV2[]> => {
       const events = await client.queryEvents({
         query: { MoveEventType: `${PACKAGE_ID}::intel_market::RequestCreatedEvent` },
         order: "descending",
         limit: 50,
       });
-      return events.data;
+      if (events.data.length === 0) return [];
+
+      const ids = events.data.map((e) => (e.parsedJson as { request_id: string }).request_id);
+      const objects = await client.multiGetObjects({
+        ids,
+        options: { showContent: true },
+      });
+
+      return objects
+        .filter((o) => o.data?.content?.dataType === "moveObject")
+        .map((o) => {
+          const f = (o.data!.content as { fields: Record<string, unknown> }).fields;
+          return {
+            id: (f.id as { id: string }).id,
+            buyer: f.buyer as string,
+            title: new TextDecoder().decode(new Uint8Array(f.title as number[])),
+            intelType: Number(f.intel_type),
+            regionId: Number(f.region_id),
+            description: new TextDecoder().decode(new Uint8Array(f.description as number[])),
+            rewardMist: Number(f.reward),
+            deadline: Number(f.deadline),
+            status: Number(f.status),
+            firstSubmissionAt: f.first_submission_at ? Number(f.first_submission_at) : null,
+            submissionCount: Number(f.submission_count),
+            selectedSeller: (f.selected_seller as string) || null,
+            createdAt: Number(f.created_at),
+          } satisfies IntelRequestV2;
+        });
     },
     refetchInterval: 30_000,
   });
@@ -188,7 +216,13 @@ export function usePurchaseIntel() {
           c.type === "created" && c.objectType?.includes("::intel_market::ListingViewerReceipt")
       );
       if (!receipt || receipt.type !== "created") throw new Error("Receipt not found in TX result");
-      return { digest: result.digest, receiptId: (receipt as { objectId: string }).objectId, listingId: params.listingId };
+      const r = receipt as { objectId: string; version: string; digest: string };
+      return {
+        digest: result.digest,
+        receiptId: r.objectId,
+        receiptRef: { objectId: r.objectId, version: r.version, digest: r.digest },
+        listingId: params.listingId,
+      };
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["intel-market"] });
@@ -239,6 +273,7 @@ export function usePostRequest() {
 export function useFulfillRequest() {
   const { signAndExecute, addToast } = useSignExec();
   const client = useSuiClient();
+  const account = useCurrentAccount();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (params: {
@@ -247,6 +282,21 @@ export function useFulfillRequest() {
     }) => {
       const encryptedPayload = await sealEncrypt(client, params.plaintext, params.requestId);
       const tx = new Transaction();
+
+      // Auto-create seller profile if missing (required for buyer to accept later)
+      if (account?.address) {
+        const profileEvents = await client.queryEvents({
+          query: { MoveEventType: `${PACKAGE_ID}::intel_market::ProfileCreatedEvent` },
+          limit: 50,
+        });
+        const hasProfile = profileEvents.data.some(
+          (e) => (e.parsedJson as { seller?: string })?.seller === account.address,
+        );
+        if (!hasProfile) {
+          buildCreateSellerProfile(tx);
+        }
+      }
+
       buildFulfillRequest(tx, {
         requestId: params.requestId,
         encryptedPayload,

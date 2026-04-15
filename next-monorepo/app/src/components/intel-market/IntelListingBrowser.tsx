@@ -26,7 +26,7 @@ export function IntelListingBrowser({ onBuy }: { onBuy?: (listingId: string) => 
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<number | null>(null);
   const [sort, setSort] = useState<string>("newest");
-  const [decryptedData, setDecryptedData] = useState<{ exactCoords: { x: string; y: string; z: string }; description: string } | null>(null);
+  const [decryptedData, setDecryptedData] = useState<{ exactCoords: { x: string; y: string; z: string } | null; description: string } | null>(null);
   const [decryptError, setDecryptError] = useState<string | null>(null);
   const [isDecrypting, setIsDecrypting] = useState(false);
   const [activeListingId, setActiveListingId] = useState<string | null>(null);
@@ -56,10 +56,10 @@ export function IntelListingBrowser({ onBuy }: { onBuy?: (listingId: string) => 
       // 1. Pre-create session key (personal message sign — cached for 9 min)
       const sessionKey = await getOrCreateSessionKey(client, account.address, signPersonalMessage);
       // 2. Purchase TX (only TX signature needed now)
-      const { receiptId } = await purchaseIntel.mutateAsync({ listingId, priceMist });
+      const { receiptId, receiptRef } = await purchaseIntel.mutateAsync({ listingId, priceMist });
       // 3. Auto-decrypt (no extra signature — uses cached session key)
       setIsDecrypting(true);
-      const data = await sealDecryptListingWithKey(client, sessionKey, listingId, receiptId);
+      const data = await sealDecryptListingWithKey(client, sessionKey, listingId, receiptId, receiptRef);
       setDecryptedData(data);
     } catch (e) {
       setDecryptError(e instanceof Error ? e.message : "Unknown error");

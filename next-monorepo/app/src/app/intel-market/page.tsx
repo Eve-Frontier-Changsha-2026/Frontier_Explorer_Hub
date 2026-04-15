@@ -6,12 +6,14 @@ import { IntelListingBrowser } from "@/components/intel-market/IntelListingBrows
 import { NewListingForm } from "@/components/intel-market/NewListingForm";
 import { IntelRequestBrowser } from "@/components/intel-market/IntelRequestBrowser";
 import { PostRequestForm } from "@/components/intel-market/PostRequestForm";
+import { FulfillRequestForm } from "@/components/intel-market/FulfillRequestForm";
 import { MyActivity } from "@/components/intel-market/MyActivity";
 
 type Tab = "sell" | "bounty" | "activity";
 
 export default function IntelMarketPage() {
   const [activeTab, setActiveTab] = useState<Tab>("sell");
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
 
   const tabs: { key: Tab; label: string }[] = [
     { key: "sell", label: "SELL INTEL" },
@@ -55,9 +57,20 @@ export default function IntelMarketPage() {
 
       {activeTab === "bounty" && (
         <div className="grid grid-cols-[minmax(0,1.6fr)_minmax(320px,0.95fr)] gap-3 max-lg:grid-cols-1">
-          <IntelRequestBrowser />
+          <IntelRequestBrowser
+            selectedRequestId={selectedRequestId}
+            onSelectRequest={setSelectedRequestId}
+          />
           <div className="content-start sticky top-4">
-            <PostRequestForm />
+            {selectedRequestId ? (
+              <FulfillRequestForm
+                requestId={selectedRequestId}
+                onCancel={() => setSelectedRequestId(null)}
+                onSuccess={() => setSelectedRequestId(null)}
+              />
+            ) : (
+              <PostRequestForm />
+            )}
           </div>
         </div>
       )}
