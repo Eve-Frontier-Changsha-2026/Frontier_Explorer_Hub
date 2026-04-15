@@ -1,12 +1,62 @@
 "use client";
 
-import { useState } from "react";
-import { useCurrentAccount } from "@mysten/dapp-kit";
+import { useState, useMemo } from "react";
+import { useCurrentAccount, useSuiClient } from "@mysten/dapp-kit";
+import { useQuery } from "@tanstack/react-query";
+import { INTEL_TYPE_LABELS } from "@/lib/constants";
+import type { IntelListingV2, IntelRequestV2 } from "@/types";
+
+const PACKAGE_ID = process.env.NEXT_PUBLIC_PACKAGE_ID!;
 
 type Section = "listings" | "purchases" | "requests" | "submissions";
 
+function parseListingFields(f: Record<string, unknown>): IntelListingV2 {
+  const meta = (f.public_metadata as { fields: Record<string, unknown> }).fields;
+  return {
+    id: (f.id as { id: string }).id,
+    seller: f.seller as string,
+    title: new TextDecoder().decode(new Uint8Array(f.title as number[])),
+    publicMetadata: {
+      regionId: Number(meta.region_id),
+      sectorX: Number(meta.sector_x),
+      sectorY: Number(meta.sector_y),
+      sectorZ: Number(meta.sector_z),
+      intelType: Number(meta.intel_type),
+      severity: Number(meta.severity),
+      expiry: Number(meta.expiry),
+    },
+    priceMist: Number(f.price_mist),
+    status: Number(f.status),
+    buyer: (f.buyer as string) || null,
+    purchasedAt: f.purchased_at ? Number(f.purchased_at) : null,
+    createdAt: Number(f.created_at),
+    isSealed: (f.encrypted_payload as unknown[])?.length > 0,
+  };
+}
+
+const STATUS_LABELS: Record<number, string> = { 0: "ACTIVE", 1: "SOLD", 2: "EXPIRED", 3: "CANCELLED" };
+const STATUS_COLORS: Record<number, string> = { 0: "text-eve-safe", 1: "text-eve-gold", 2: "text-eve-muted", 3: "text-eve-danger" };
+
+function ListingRow({ listing }: { listing: IntelListingV2 }) {
+  return (
+    <div className="flex justify-between items-center border-b border-eve-panel-border/30 py-1.5 px-1">
+      <div className="flex-1">
+        <div className="text-[0.68rem] text-eve-text truncate">{listing.title}</div>
+        <div className="text-[0.58rem] text-eve-muted">
+          {INTEL_TYPE_LABELS[listing.publicMetadata.intelType]} · Region {listing.publicMetadata.regionId}
+        </div>
+      </div>
+      <div className="text-right">
+        <div className="text-[0.63rem] text-eve-gold">{(listing.priceMist / 1e9).toFixed(3)} SUI</div>
+        <div className={`text-[0.55rem] ${STATUS_COLORS[listing.status]}`}>{STATUS_LABELS[listing.status]}</div>
+      </div>
+    </div>
+  );
+}
+
 export function MyActivity() {
   const account = useCurrentAccount();
+  const client = useSuiClient();
   const [expanded, setExpanded] = useState<Set<Section>>(new Set(["listings", "purchases"]));
 
   const toggle = (s: Section) => {
@@ -16,6 +66,73 @@ export function MyActivity() {
       return next;
     });
   };
+
+  // Query all IntelListing objects created by this user (via events)
+  const { data: myListings, isLoading: loadingListings } = useQuery({
+    queryKey: ["intel-market", "my-listings", account?.address],
+    queryFn: async (): Promise<IntelListingV2[]> => {
+      if (!account) return [];
+      const events = await client.queryEvents({
+        query: {
+          MoveEventType: `${PACKAGE_ID}::intel_market::ListingCreatedEvent`,
+        },
+        order: "descending",
+        limit: 50,
+      });
+      const myEvents = events.data.filter((e) => e.sender === account.address);
+      if (myEvents.length === 0) return [];
+      const ids = myEvents.map((e) => (e.parsedJson as { listing_id: string }).listing_id);
+      const objects = await client.multiGetObjects({ ids, options: { showContent: true } });
+      return objects
+        .filter((o) => o.data?.content?.dataType === "moveObject")
+        .map((o) => parseListingFields((o.data!.content as { fields: Record<string, unknown> }).fields));
+    },
+    enabled: !!account,
+    refetchInterval: 30_000,
+  });
+
+  // Query purchases (ListingViewerReceipt owned by user)
+  const { data: myPurchases, isLoading: loadingPurchases } = useQuery({
+    queryKey: ["intel-market", "my-purchases", account?.address],
+    queryFn: async () => {
+      if (!account) return [];
+      const receipts = await client.getOwnedObjects({
+        owner: account.address,
+        filter: { StructType: `${PACKAGE_ID}::intel_market::ListingViewerReceipt` },
+        options: { showContent: true },
+      });
+      return receipts.data
+        .filter((r) => r.data?.content?.dataType === "moveObject")
+        .map((r) => {
+          const f = (r.data!.content as { fields: Record<string, unknown> }).fields;
+          return {
+            receiptId: (f.id as { id: string }).id,
+            listingId: f.listing_id as string,
+            buyer: f.buyer as string,
+          };
+        });
+    },
+    enabled: !!account,
+    refetchInterval: 30_000,
+  });
+
+  // Query bounty requests created by user
+  const { data: myRequests, isLoading: loadingRequests } = useQuery({
+    queryKey: ["intel-market", "my-requests", account?.address],
+    queryFn: async () => {
+      if (!account) return [];
+      const events = await client.queryEvents({
+        query: { MoveEventType: `${PACKAGE_ID}::intel_market::RequestCreatedEvent` },
+        order: "descending",
+        limit: 50,
+      });
+      return events.data
+        .filter((e) => e.sender === account.address)
+        .map((e) => e.parsedJson as { request_id: string; title: number[]; reward_mist: string; deadline: string });
+    },
+    enabled: !!account,
+    refetchInterval: 30_000,
+  });
 
   if (!account) {
     return (
@@ -34,14 +151,16 @@ export function MyActivity() {
       {/* MY LISTINGS */}
       <div className={sectionClass}>
         <div className={headerClass} onClick={() => toggle("listings")}>
-          <span className={titleClass}>My Listings</span>
+          <span className={titleClass}>My Listings ({myListings?.length ?? 0})</span>
           <span className="text-eve-muted text-xs">{expanded.has("listings") ? "▾" : "▸"}</span>
         </div>
         {expanded.has("listings") && (
           <div className="px-3 pb-3">
-            <div className="text-[0.65rem] text-eve-muted/50 text-center py-4">
-              No listings yet
-            </div>
+            {loadingListings && <div className="text-[0.6rem] text-eve-muted text-center py-2">Loading...</div>}
+            {!loadingListings && (!myListings || myListings.length === 0) && (
+              <div className="text-[0.65rem] text-eve-muted/50 text-center py-4">No listings yet</div>
+            )}
+            {myListings?.map((l) => <ListingRow key={l.id} listing={l} />)}
           </div>
         )}
       </div>
@@ -49,14 +168,21 @@ export function MyActivity() {
       {/* MY PURCHASES */}
       <div className={sectionClass}>
         <div className={headerClass} onClick={() => toggle("purchases")}>
-          <span className={titleClass}>My Purchases</span>
+          <span className={titleClass}>My Purchases ({myPurchases?.length ?? 0})</span>
           <span className="text-eve-muted text-xs">{expanded.has("purchases") ? "▾" : "▸"}</span>
         </div>
         {expanded.has("purchases") && (
           <div className="px-3 pb-3">
-            <div className="text-[0.65rem] text-eve-muted/50 text-center py-4">
-              No purchases yet
-            </div>
+            {loadingPurchases && <div className="text-[0.6rem] text-eve-muted text-center py-2">Loading...</div>}
+            {!loadingPurchases && (!myPurchases || myPurchases.length === 0) && (
+              <div className="text-[0.65rem] text-eve-muted/50 text-center py-4">No purchases yet</div>
+            )}
+            {myPurchases?.map((p) => (
+              <div key={p.receiptId} className="flex justify-between items-center border-b border-eve-panel-border/30 py-1.5 px-1">
+                <div className="text-[0.6rem] text-eve-text font-mono truncate">{p.listingId.slice(0, 16)}...</div>
+                <div className="text-[0.55rem] text-eve-safe">PURCHASED</div>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -64,14 +190,23 @@ export function MyActivity() {
       {/* MY REQUESTS */}
       <div className={sectionClass}>
         <div className={headerClass} onClick={() => toggle("requests")}>
-          <span className={titleClass}>My Requests</span>
+          <span className={titleClass}>My Requests ({myRequests?.length ?? 0})</span>
           <span className="text-eve-muted text-xs">{expanded.has("requests") ? "▾" : "▸"}</span>
         </div>
         {expanded.has("requests") && (
           <div className="px-3 pb-3">
-            <div className="text-[0.65rem] text-eve-muted/50 text-center py-4">
-              No requests yet
-            </div>
+            {loadingRequests && <div className="text-[0.6rem] text-eve-muted text-center py-2">Loading...</div>}
+            {!loadingRequests && (!myRequests || myRequests.length === 0) && (
+              <div className="text-[0.65rem] text-eve-muted/50 text-center py-4">No requests yet</div>
+            )}
+            {myRequests?.map((r) => (
+              <div key={r.request_id} className="flex justify-between items-center border-b border-eve-panel-border/30 py-1.5 px-1">
+                <div className="text-[0.6rem] text-eve-text truncate">
+                  {new TextDecoder().decode(new Uint8Array(r.title))}
+                </div>
+                <div className="text-[0.63rem] text-eve-gold">{(Number(r.reward_mist) / 1e9).toFixed(3)} SUI</div>
+              </div>
+            ))}
           </div>
         )}
       </div>

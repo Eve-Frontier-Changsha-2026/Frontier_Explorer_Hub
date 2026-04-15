@@ -29,15 +29,49 @@ export function useIntelListings() {
   const client = useSuiClient();
   return useQuery({
     queryKey: ["intel-market", "listings"],
-    queryFn: async () => {
-      // TODO: Replace with indexer query for IntelListing objects
-      // For now, use event-based approach:
+    queryFn: async (): Promise<IntelListingV2[]> => {
+      // 1. Get listing IDs from creation events
       const events = await client.queryEvents({
         query: { MoveEventType: `${PACKAGE_ID}::intel_market::ListingCreatedEvent` },
         order: "descending",
         limit: 50,
       });
-      return events.data;
+      if (events.data.length === 0) return [];
+
+      // 2. Fetch actual objects for current state
+      const ids = events.data.map((e) => (e.parsedJson as { listing_id: string }).listing_id);
+      const objects = await client.multiGetObjects({
+        ids,
+        options: { showContent: true },
+      });
+
+      // 3. Parse into IntelListingV2
+      return objects
+        .filter((o) => o.data?.content?.dataType === "moveObject")
+        .map((o) => {
+          const f = (o.data!.content as { fields: Record<string, unknown> }).fields;
+          const meta = (f.public_metadata as { fields: Record<string, unknown> }).fields;
+          return {
+            id: (f.id as { id: string }).id,
+            seller: f.seller as string,
+            title: new TextDecoder().decode(new Uint8Array(f.title as number[])),
+            publicMetadata: {
+              regionId: Number(meta.region_id),
+              sectorX: Number(meta.sector_x),
+              sectorY: Number(meta.sector_y),
+              sectorZ: Number(meta.sector_z),
+              intelType: Number(meta.intel_type),
+              severity: Number(meta.severity),
+              expiry: Number(meta.expiry),
+            },
+            priceMist: Number(f.price_mist),
+            status: Number(f.status),
+            buyer: (f.buyer as string) || null,
+            purchasedAt: f.purchased_at ? Number(f.purchased_at) : null,
+            createdAt: Number(f.created_at),
+            isSealed: (f.encrypted_payload as unknown[])?.length > 0,
+          } satisfies IntelListingV2;
+        });
     },
     refetchInterval: 30_000,
   });

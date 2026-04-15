@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useIntelListings, usePurchaseIntel, useDecryptListing } from "@/hooks/use-intel-market";
+import type { IntelListingV2 } from "@/types";
 import { IntelListingCard } from "./IntelListingCard";
 import { DecryptedIntelView } from "./DecryptedIntelView";
 import { INTEL_TYPE_LABELS } from "@/lib/constants";
@@ -24,6 +25,22 @@ export function IntelListingBrowser({ onBuy }: { onBuy?: (listingId: string) => 
   const [decryptError, setDecryptError] = useState<string | null>(null);
   const [isDecrypting, setIsDecrypting] = useState(false);
   const [activeListingId, setActiveListingId] = useState<string | null>(null);
+
+  const filteredListings = useMemo(() => {
+    if (!listings) return [];
+    let result = listings.filter((l: IntelListingV2) => l.status === 0); // ACTIVE only
+    if (typeFilter !== null) result = result.filter((l) => l.publicMetadata.intelType === typeFilter);
+    if (search) {
+      const q = search.toLowerCase();
+      result = result.filter((l) =>
+        l.title.toLowerCase().includes(q) || String(l.publicMetadata.regionId).includes(q)
+      );
+    }
+    if (sort === "newest") result.sort((a, b) => b.createdAt - a.createdAt);
+    else if (sort === "price_asc") result.sort((a, b) => a.priceMist - b.priceMist);
+    else if (sort === "price_desc") result.sort((a, b) => b.priceMist - a.priceMist);
+    return result;
+  }, [listings, typeFilter, search, sort]);
 
   const handleBuy = async (listingId: string, priceMist: number) => {
     try {
@@ -100,10 +117,20 @@ export function IntelListingBrowser({ onBuy }: { onBuy?: (listingId: string) => 
       {/* Listing cards */}
       <div className="flex flex-col gap-1.5 max-h-[calc(100vh-320px)] overflow-y-auto">
         {isLoading && <div className="text-xs text-eve-muted p-4">Loading...</div>}
-        {/* Placeholder — replace with actual data mapping */}
-        <div className="text-xs text-eve-muted p-4 text-center">
-          No listings yet. Be the first to sell intel.
-        </div>
+        {!isLoading && filteredListings.length === 0 && (
+          <div className="text-xs text-eve-muted p-4 text-center">
+            No listings yet. Be the first to sell intel.
+          </div>
+        )}
+        {filteredListings.map((listing) => (
+          <IntelListingCard
+            key={listing.id}
+            listing={listing}
+            sellerRating={3.0}
+            sellerTrades={0}
+            onBuy={() => handleBuy(listing.id, listing.priceMist)}
+          />
+        ))}
       </div>
 
       {activeListingId && (
