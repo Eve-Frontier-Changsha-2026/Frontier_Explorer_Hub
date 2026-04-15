@@ -15,7 +15,7 @@
 
 1. **打開首頁**
    - 頁面完整渲染，背景有 scanline/noise 動畫效果
-   - 左側 Sidebar 展開，顯示 7 個導航項目（Dashboard / Tactical Map / Submit Intel / Bounties / Plugin Market / Membership / Portal）
+   - 左側 Sidebar 展開，顯示 7 個導航項目（Dashboard / Tactical Map / Intel Market / Bounties / Membership / Plugin Store / Portal）
    - Sidebar 底部顯示 "Connect Wallet" 按鈕
    - Header 區域顯示 "REAL-TIME FRONTIER INTEL DASHBOARD" 標題
    - 右側有 Reports / Active Alerts / Active Regions 三個數據指標
@@ -45,7 +45,7 @@
 3. **逐一點擊 7 個導航頁面**
    - 每點一個導航項目，對應頁面正常載入，不白屏
    - 被點擊的 nav item 有視覺高亮（邊框 / 顏色變化）
-   - 地址列 URL 正確跳轉（`/`, `/map`, `/submit`, `/bounties`, `/store`, `/subscribe`, `/portal`）
+   - 地址列 URL 正確跳轉（`/`, `/map`, `/intel-market`, `/bounties`, `/subscribe`, `/store`, `/portal`）
 
 4. **收合 / 展開 Sidebar**
    - 點擊 Sidebar toggle → Sidebar 縮到只剩 icon
@@ -53,7 +53,7 @@
    - 收合狀態下頁面主內容區域變寬
 
 5. **嘗試需要 wallet 的操作（未連線）**
-   - 進入 Submit Intel 頁面 → "Submit Intel" 按鈕呈 disabled 灰色狀態，面板 badge 顯示 "Connect Wallet"
+   - 進入 Intel Market → SELL INTEL tab 的 NewListingForm 需要 wallet 連線才能提交
    - 進入 Bounties 頁面 → "Create Bounty" 按鈕 disabled，面板 badge 顯示 "Connect Wallet"
    - 進入 Bounties 列表 → Tab 只顯示 "All Active"（不顯示 My Bounties / My Submissions）
    - 進入 Membership 頁面 → "Upgrade Membership" 按鈕 disabled
@@ -77,7 +77,7 @@
    - Sidebar 出現 tier badge（FREE 或 PREMIUM）
 
 2. **確認 wallet 狀態在各頁面同步**
-   - 進入 Submit Intel → badge 改為 "Ready"，Submit 按鈕變為可點擊
+   - 進入 Intel Market → NewListingForm 可提交，MY ACTIVITY tab 顯示個人交易紀錄
    - 進入 Bounties → "Create Bounty" 按鈕可點擊；Tab bar 多出 "My Bounties" 和 "My Submissions"
    - 進入 Membership → 顯示你的 Current Access Level（Free / Premium）和 Expiry 資訊
    - 進入 Bounty Detail（任一 bounty）→ Header 的 Role 指標顯示 CREATOR / HUNTER / VIEWER（取決於你跟這個 bounty 的關係）
@@ -99,7 +99,7 @@
 ## Scenario 3：觀察戰況 — Dashboard + 戰術地圖
 
 > **角色**：探險者登入後，想了解目前宇宙的戰況和熱點區域。
-> **目的**：驗證 Dashboard 資料載入、Map 頁面的雙視圖切換、zoom 行為。
+> **目的**：驗證 Dashboard 資料載入、Map 頁面的雙視圖切換、System Heatmap 星圖互動。
 
 ### 操作步驟
 
@@ -113,23 +113,40 @@
 2. **進入 Tactical Map 頁面**
    - Header 顯示 "TACTICAL CONFLICT MAP"
    - 顯示 Zoom Level / Visible Cells / Loading 三個指標
-   - 預設顯示 "Conflict Map" tab（ef-map.com iframe 地圖）
+   - Map Controls 面板含 Conflict Map / Intel Heatmap 兩個 tab + Zoom Out / Zoom In 按鈕
+   - 預設顯示 "Conflict Map" tab（ef-map.com iframe 地圖 + 兩欄佈局）
 
-3. **切換到 Intel Heatmap tab**
-   - 點擊 "Intel Heatmap" 按鈕 → 視圖切換
-   - 如果有 heatmap 資料 → 顯示 cell 格子，每格顯示 Region ID 和 reports 數量
-   - 如果沒資料 → 顯示 "No heatmap data available. Submit intel to populate."
-   - 切回 "Conflict Map" → iframe 地圖恢復
+3. **Conflict Map tab 檢查**
+   - 左側：RegionActivityPanel（compact 模式）+ Conflict Map iframe embed
+   - 右側：Selected System 面板（預設 "Click a system node to inspect."）+ Systems 列表
+   - Systems 列表按 intensity 排序顯示所有星系節點，每個含 label + intensity + 四色指標
 
-4. **Zoom 控制（Free tier）**
+4. **切換到 Intel Heatmap tab**
+   - 點擊 "Intel Heatmap" 按鈕 → 視圖切換為 **全寬 Canvas2D 星圖**
+   - 星圖佔滿 70vh 高度，深色太空背景
+   - 星系以橙色光暈圓點渲染，大小和亮度反映 intensity
+   - 星系之間有連線（共享 killer 或距離相近）
+   - 每個星系旁有多色數據標籤（⚔ 紅 / 📡 青 / 🚪 紫 / 💰 黃）
+   - 右側有 **floating overlay sidebar**（半透明深色面板）
+   - 如果無資料 → 顯示 "No system data yet."
+
+5. **Heatmap 星圖互動**
+   - 點擊某個星系節點 → floating sidebar 更新顯示該星系的詳細資料（Kills / Intel / Gates / Market + Intensity）
+   - 星系在星圖上以金色邊框高亮
+   - 在 floating sidebar 的 Systems 列表中點擊某星系 → 星圖自動置中+縮放到該星系（centerOnSystem）
+
+6. **Floating sidebar 收合/展開**
+   - 點擊 sidebar 右上角的 ▶ 按鈕 → sidebar 滑出消失
+   - 右側邊緣出現垂直 "◀ PANEL" 小 tab
+   - 點擊 "◀ PANEL" → sidebar 滑入恢復
+
+7. **Zoom 控制（Free tier）**
    - 點 "Zoom In" → zoom level 數字增加
    - 連續 zoom in 直到超過 tier 限制 → 出現黃色閃爍警告文字 "Current tier limits deeper zoom. Upgrade to Premium for full depth."
    - 點 "Zoom Out" → zoom level 遞減，回到 0 時不再繼續遞減
 
-5. **Region 選擇與活動面板**
-   - 在 Heatmap 模式下點擊某個 cell → Selected Intel 面板更新為該 cell 的資訊
-   - RegionActivityPanel 顯示該 region 的活動統計（如果有資料）
-   - 在右側 Live Feed 點擊某筆紀錄 → Selected Intel 同步更新
+8. **切回 Conflict Map**
+   - 點擊 "Conflict Map" tab → iframe 地圖恢復，兩欄佈局回來
 
 **結果：** [ ]
 
@@ -142,7 +159,7 @@
 
 ### 操作步驟
 
-1. **進入 Submit Intel 頁面**
+1. **進入 Submit Intel 頁面（`/submit`）**
    - 顯示 "INTEL SUBMISSION DESK" 標題
    - 左側為表單面板 "New Report"（badge 顯示 "Ready"）
    - 右側為 "Transaction History" 面板（初始顯示 "No submissions yet."）
@@ -178,7 +195,65 @@
 
 ---
 
-## Scenario 5：懸賞任務全生命週期 — 建立、認領、提交證據、審核
+## Scenario 5：Intel Market — 買賣情報 & 懸賞
+
+> **角色**：探險者想在 Intel Market 上架情報販賣，或發布懸賞需求。
+> **前提**：已連線 wallet，帳戶有 testnet SUI。
+> **目的**：驗證 Intel Market 三個 tab 的完整功能。
+
+### Part A — 上架情報販賣（SELL INTEL tab）
+
+1. **進入 Intel Market 頁面**
+   - Header 顯示 "INTEL MARKET"
+   - 副標題 "Trade encrypted intelligence. Buy verified intel. Build your reputation."
+   - 三個 sub-tab：SELL INTEL / BOUNTY BOARD / MY ACTIVITY
+   - 預設在 SELL INTEL tab
+
+2. **瀏覽現有 Listings**
+   - 左側 IntelListingBrowser 顯示已上架的情報列表
+   - 每筆 listing 顯示：標題/描述、價格（SUI）、seller 地址、狀態
+   - 如果無 listings → 顯示空狀態提示
+
+3. **建立新 Listing**
+   - 右側 NewListingForm（sticky 定位）
+   - 填入 intel 描述、設定價格
+   - 點擊提交 → Wallet 簽名（listing fee 0.01 SUI）
+   - 成功後 listing 出現在左側列表
+
+4. **購買情報（需另一帳號）**
+   - 切換到 Account B
+   - 在 SELL INTEL tab 看到 Account A 的 listing
+   - 點擊購買 → Wallet 簽名（支付 listing 價格）
+   - 交易完成後取得 intel 內容
+
+### Part B — 發布懸賞（BOUNTY BOARD tab）
+
+5. **切換到 BOUNTY BOARD tab**
+   - 左側 IntelRequestBrowser 顯示已發布的懸賞需求
+   - 右側 PostRequestForm（sticky 定位）
+
+6. **發布懸賞需求**
+   - 填入需求描述、設定獎金金額、截止時間
+   - 點擊提交 → Wallet 簽名（獎金 escrow 到合約）
+   - 成功後需求出現在左側列表
+
+7. **獵人提交回應（Account B）**
+   - 切到 Account B
+   - 在 BOUNTY BOARD 看到需求 → 點擊提交回應
+   - Wallet 簽名 → 提交成功
+
+### Part C — 個人活動紀錄（MY ACTIVITY tab）
+
+8. **切換到 MY ACTIVITY tab**
+   - MyActivity 顯示個人相關的所有交易紀錄
+   - 包含：我的 listings、我的購買、我的懸賞、我的回應
+   - 各筆紀錄狀態正確（active / completed / expired）
+
+**結果：** [ ]
+
+---
+
+## Scenario 6：懸賞任務全生命週期 — 建立、認領、提交證據、審核
 
 > **角色**：兩個帳號（Account A = 懸賞發起者 / Account B = 獵人）。
 > **前提**：需要兩個 wallet 帳號切換，或用兩個瀏覽器。
@@ -255,7 +330,7 @@
 
 ---
 
-## Scenario 6：Plugin 市集 — 瀏覽、搜尋、裝備
+## Scenario 7：Plugin 市集 — 瀏覽、搜尋、裝備
 
 > **角色**：探險者想要安裝情報分析插件來強化自己的戰場感知。
 > **目的**：驗證 Plugin 市集的搜尋、篩選、裝備 slot 系統。
@@ -308,7 +383,7 @@
 
 ---
 
-## Scenario 7：訂閱升級 — Free → Premium
+## Scenario 8：訂閱升級 — Free → Premium
 
 > **角色**：Free tier 探險者，想升級到 Premium 以解鎖深度 zoom 和更快刷新。
 > **前提**：已連線 wallet，帳戶有足夠 testnet SUI。
@@ -351,7 +426,7 @@
 
 ---
 
-## Scenario 8：Portal — 自訂外部工具收藏
+## Scenario 9：Portal — 自訂外部工具收藏
 
 > **角色**：探險者想把常用的外部工具（地圖、交易所、Discord）嵌入到 Portal 頁面。
 > **目的**：驗證 Portal 完整生命週期：空狀態 → 新增 → 瀏覽 → 全螢幕 → 持久化。
@@ -424,37 +499,48 @@
 
 ---
 
-## Scenario 9：戰術地圖深度分析
+## Scenario 10：戰術地圖深度分析 — System Heatmap 互動
 
-> **角色**：Premium 探險者正在分析特定區域的威脅密度。
-> **目的**：驗證 Heatmap 資料互動、cell 選擇、Region Activity。
+> **角色**：Premium 探險者正在分析特定星系的威脅密度。
+> **目的**：驗證 Canvas2D 星圖的完整互動流程、sidebar overlay、星系置中。
 
 ### 操作步驟
 
 1. **切換到 Heatmap 視圖**
    - 進入 Tactical Map → 點 "Intel Heatmap" tab
-   - 如果有資料 → 顯示 cell grid，每格包含 Region ID 和 reports 數量
-   - 如果無資料 → 顯示提示文字
+   - Canvas2D 星圖完整渲染，d3-force 佈局自動排列星系節點
+   - 星系以橙色光暈渲染，intensity 高的星系更大更亮
+   - 星系間連線可見（半透明線條）
 
-2. **選擇特定 Cell**
-   - 點擊某個 heatmap cell → 右側 "Selected Intel" 面板更新顯示 "Viewing cell R-{regionId}-{index}"
-   - RegionActivityPanel 可能顯示該 region 的 defense index / infra index / traffic index / active players
+2. **點擊星系節點**
+   - 在星圖上直接點擊某個星系 → 該星系以金色邊框高亮
+   - Floating sidebar 自動展開（若已收合）
+   - Sidebar 頂部面板更新為該星系的 4 項指標（Kills / Intel / Gates / Market）
+   - 下方顯示 Intensity 數值
 
-3. **Live Feed 互動**
-   - 右側 Live Feed 列出情報紀錄
-   - 點擊某筆 feed item → Selected Intel 同步更新
-   - Feed item 有風險 badge 和系統/時間標籤
+3. **從 Systems 列表選擇星系**
+   - 在 floating sidebar 的 Systems 列表中點擊另一個星系
+   - 星圖自動平滑移動 + 縮放到 1.2x，將目標星系置於 viewport 中央
+   - Sidebar 頂部面板同步更新為新選中的星系
 
-4. **Zoom 連動**
-   - Zoom In → Header 的 "Visible Cells" 數字可能變化
-   - Zoom 到 tier 上限 → 顯示警告
-   - Zoom Out 回到 0 → 數據恢復
+4. **連續切換多個星系**
+   - 快速連續點擊不同星系 → 每次都能正確置中 + 更新 sidebar
+   - 無跳動或閃爍問題
+
+5. **Sidebar 收合後操作**
+   - 收合 sidebar（▶ 按鈕）
+   - 直接在星圖上點擊星系 → sidebar 自動展開並顯示該星系資料
+   - 星系正確高亮
+
+6. **空資料狀態**
+   - 如果 backend 沒有 heatmap 資料 → Systems 列表顯示 "No system data yet."
+   - 星圖為空白太空背景，不報錯
 
 **結果：** [ ]
 
 ---
 
-## Scenario 10：斷線容錯 & Edge Cases
+## Scenario 11：斷線容錯 & Edge Cases
 
 > **角色**：使用者遇到各種異常狀況。
 > **目的**：確保頁面不會白屏或卡死。
@@ -469,6 +555,7 @@
    - Live Intel Feed 顯示 loading 或空白
    - 頁面整體不白屏、Console 無 uncaught error
    - Bounties → 列表為空或顯示 loading，不白屏
+   - Intel Market → Listings 為空，PostRequestForm 可填寫但提交會失敗 → error toast
    - Submit Intel → 填表可以操作但提交會失敗 → error toast
 
 2. **Portal 在斷網狀態**
@@ -492,7 +579,7 @@
 
 ---
 
-## Scenario 11：Demo 快速走位（5 分鐘 Smoke Test）
+## Scenario 12：Demo 快速走位（5 分鐘 Smoke Test）
 
 > **目的**：Demo 前的最後確認，只走核心路徑。
 
@@ -500,13 +587,15 @@
 |---|------|------|------|
 | 1 | 開啟首頁 | 頁面完整渲染，Console 無紅字 | [ ] |
 | 2 | Connect Wallet | 地址出現在 Sidebar | [ ] |
-| 3 | 7 個導航都點一次 | 全部正常載入 | [ ] |
+| 3 | 7 個導航都點一次 | 全部正常載入（`/`, `/map`, `/intel-market`, `/bounties`, `/subscribe`, `/store`, `/portal`） | [ ] |
 | 4 | Dashboard | WorldStatusBar 5 指標有數據 + Kill Ticker 有事件 + Map iframe + Feed | [ ] |
-| 5 | Tactical Map → Conflict Map → Heatmap 切換 | 兩個 tab 都能切換顯示 | [ ] |
-| 6 | Submit Intel → 填表 → 提交 | Wallet 簽名成功，TX 出現在 History | [ ] |
-| 7 | Bounties → 建立一個 Bounty | 成功出現在列表 | [ ] |
-| 8 | Plugin Market → 搜尋 → 裝備到 slot | Slot 顯示插件名 | [ ] |
-| 9 | Portal → Add Link → 預覽 → 全螢幕 → 返回 | 完整流程不報錯 | [ ] |
-| 10 | Membership → 看到 Capability Matrix | 表格正常渲染 | [ ] |
-| 11 | Sidebar 收合 / 展開 | 動畫流暢 | [ ] |
-| 12 | F5 重整 | Wallet auto-reconnect + Portal 連結保留 | [ ] |
+| 5 | Tactical Map → Conflict Map → Heatmap 切換 | 兩個 tab 都能切換；Heatmap 星圖渲染 + floating sidebar 可展開收合 | [ ] |
+| 6 | Heatmap 星系互動 | 點擊星系 → sidebar 更新 + 星圖置中 | [ ] |
+| 7 | Submit Intel → 填表 → 提交 | Wallet 簽名成功，TX 出現在 History | [ ] |
+| 8 | Intel Market → 三個 tab 切換 | SELL INTEL / BOUNTY BOARD / MY ACTIVITY 正常渲染 | [ ] |
+| 9 | Bounties → 建立一個 Bounty | 成功出現在列表 | [ ] |
+| 10 | Plugin Market → 搜尋 → 裝備到 slot | Slot 顯示插件名 | [ ] |
+| 11 | Portal → Add Link → 預覽 → 全螢幕 → 返回 | 完整流程不報錯 | [ ] |
+| 12 | Membership → 看到 Capability Matrix | 表格正常渲染 | [ ] |
+| 13 | Sidebar 收合 / 展開 | 動畫流暢 | [ ] |
+| 14 | F5 重整 | Wallet auto-reconnect + Portal 連結保留 | [ ] |

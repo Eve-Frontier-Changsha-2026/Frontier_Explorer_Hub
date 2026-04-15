@@ -1,14 +1,23 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useCurrentAccount, useSuiClient } from "@mysten/dapp-kit";
+import { useState } from "react";
+import { useCurrentAccount, useSuiClient, useSignPersonalMessage } from "@mysten/dapp-kit";
 import { useQuery } from "@tanstack/react-query";
 import { INTEL_TYPE_LABELS } from "@/lib/constants";
-import type { IntelListingV2, IntelRequestV2 } from "@/types";
+import { getOrCreateSessionKey, sealDecryptListingWithKey } from "@/lib/seal";
+import { DecryptedIntelView } from "./DecryptedIntelView";
+import type { IntelListingV2 } from "@/types";
 
 const PACKAGE_ID = process.env.NEXT_PUBLIC_PACKAGE_ID!;
 
 type Section = "listings" | "purchases" | "requests" | "submissions";
+
+interface PurchaseWithListing {
+  receiptId: string;
+  listingId: string;
+  buyer: string;
+  listing: IntelListingV2 | null;
+}
 
 function parseListingFields(f: Record<string, unknown>): IntelListingV2 {
   const meta = (f.public_metadata as { fields: Record<string, unknown> }).fields;
@@ -57,7 +66,26 @@ function ListingRow({ listing }: { listing: IntelListingV2 }) {
 export function MyActivity() {
   const account = useCurrentAccount();
   const client = useSuiClient();
+  const { mutateAsync: signPersonalMessage } = useSignPersonalMessage();
   const [expanded, setExpanded] = useState<Set<Section>>(new Set(["listings", "purchases"]));
+  const [decryptingId, setDecryptingId] = useState<string | null>(null);
+  const [decryptedMap, setDecryptedMap] = useState<Record<string, { exactCoords: { x: string; y: string; z: string }; description: string }>>({});
+  const [decryptErrors, setDecryptErrors] = useState<Record<string, string>>({});
+
+  const handleDecrypt = async (purchase: PurchaseWithListing) => {
+    if (!account) return;
+    try {
+      setDecryptingId(purchase.receiptId);
+      setDecryptErrors((prev) => { const n = { ...prev }; delete n[purchase.receiptId]; return n; });
+      const sessionKey = await getOrCreateSessionKey(client, account.address, signPersonalMessage);
+      const data = await sealDecryptListingWithKey(client, sessionKey, purchase.listingId, purchase.receiptId);
+      setDecryptedMap((prev) => ({ ...prev, [purchase.receiptId]: data }));
+    } catch (e) {
+      setDecryptErrors((prev) => ({ ...prev, [purchase.receiptId]: e instanceof Error ? e.message : "Unknown error" }));
+    } finally {
+      setDecryptingId(null);
+    }
+  };
 
   const toggle = (s: Section) => {
     setExpanded((prev) => {
@@ -91,17 +119,17 @@ export function MyActivity() {
     refetchInterval: 30_000,
   });
 
-  // Query purchases (ListingViewerReceipt owned by user)
+  // Query purchases (ListingViewerReceipt owned by user) + enrich with listing data
   const { data: myPurchases, isLoading: loadingPurchases } = useQuery({
     queryKey: ["intel-market", "my-purchases", account?.address],
-    queryFn: async () => {
+    queryFn: async (): Promise<PurchaseWithListing[]> => {
       if (!account) return [];
       const receipts = await client.getOwnedObjects({
         owner: account.address,
         filter: { StructType: `${PACKAGE_ID}::intel_market::ListingViewerReceipt` },
         options: { showContent: true },
       });
-      return receipts.data
+      const purchases = receipts.data
         .filter((r) => r.data?.content?.dataType === "moveObject")
         .map((r) => {
           const f = (r.data!.content as { fields: Record<string, unknown> }).fields;
@@ -111,6 +139,18 @@ export function MyActivity() {
             buyer: f.buyer as string,
           };
         });
+      if (purchases.length === 0) return [];
+      // Fetch listing objects for details
+      const listingIds = purchases.map((p) => p.listingId);
+      const objects = await client.multiGetObjects({ ids: listingIds, options: { showContent: true } });
+      return purchases.map((p, i) => {
+        const o = objects[i];
+        let listing: IntelListingV2 | null = null;
+        if (o?.data?.content?.dataType === "moveObject") {
+          listing = parseListingFields((o.data.content as { fields: Record<string, unknown> }).fields);
+        }
+        return { ...p, listing };
+      });
     },
     enabled: !!account,
     refetchInterval: 30_000,
@@ -178,9 +218,43 @@ export function MyActivity() {
               <div className="text-[0.65rem] text-eve-muted/50 text-center py-4">No purchases yet</div>
             )}
             {myPurchases?.map((p) => (
-              <div key={p.receiptId} className="flex justify-between items-center border-b border-eve-panel-border/30 py-1.5 px-1">
-                <div className="text-[0.6rem] text-eve-text font-mono truncate">{p.listingId.slice(0, 16)}...</div>
-                <div className="text-[0.55rem] text-eve-safe">PURCHASED</div>
+              <div key={p.receiptId} className="border border-eve-panel-border/40 bg-[rgba(12,16,24,0.6)] p-2 mb-1.5">
+                {p.listing ? (
+                  <>
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="text-[0.68rem] text-eve-text">{p.listing.title}</div>
+                        <div className="text-[0.58rem] text-eve-muted">
+                          {INTEL_TYPE_LABELS[p.listing.publicMetadata.intelType]} · Region {p.listing.publicMetadata.regionId} · Sector ({p.listing.publicMetadata.sectorX}, {p.listing.publicMetadata.sectorY}, {p.listing.publicMetadata.sectorZ})
+                        </div>
+                      </div>
+                      <div className="text-right ml-2">
+                        <div className="text-[0.63rem] text-eve-gold">{(p.listing.priceMist / 1e9).toFixed(3)} SUI</div>
+                        <div className="text-[0.55rem] text-eve-safe">PURCHASED</div>
+                      </div>
+                    </div>
+                    {p.listing.isSealed && !decryptedMap[p.receiptId] && !decryptErrors[p.receiptId] && (
+                      <button
+                        onClick={() => handleDecrypt(p)}
+                        disabled={decryptingId === p.receiptId}
+                        className="mt-1.5 text-[0.6rem] border border-eve-gold/40 text-eve-gold px-2 py-0.5 hover:bg-eve-gold/10 disabled:opacity-40"
+                      >
+                        {decryptingId === p.receiptId ? "DECRYPTING..." : "🔓 DECRYPT INTEL"}
+                      </button>
+                    )}
+                    {decryptedMap[p.receiptId] && (
+                      <DecryptedIntelView data={decryptedMap[p.receiptId]} isDecrypting={false} error={null} />
+                    )}
+                    {decryptErrors[p.receiptId] && (
+                      <DecryptedIntelView data={null} isDecrypting={false} error={decryptErrors[p.receiptId]} onRetry={() => handleDecrypt(p)} />
+                    )}
+                  </>
+                ) : (
+                  <div className="flex justify-between items-center">
+                    <div className="text-[0.6rem] text-eve-text font-mono truncate">{p.listingId.slice(0, 16)}...</div>
+                    <div className="text-[0.55rem] text-eve-safe">PURCHASED</div>
+                  </div>
+                )}
               </div>
             ))}
           </div>

@@ -280,12 +280,15 @@ export function useAcceptAndRate() {
 
 export function useCancelListing() {
   const { signAndExecute, addToast } = useSignExec();
+  const client = useSuiClient();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (params: Parameters<typeof buildCancelListing>[1]) => {
       const tx = new Transaction();
       buildCancelListing(tx, params);
-      return signAndExecute({ transaction: tx as never });
+      const result = await signAndExecute({ transaction: tx as never });
+      await client.waitForTransaction({ digest: result.digest });
+      return result;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["intel-market"] });

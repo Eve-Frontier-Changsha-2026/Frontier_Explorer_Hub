@@ -15,6 +15,8 @@ const TESTNET_KEY_SERVERS = [
 ];
 
 let _client: SealClient | null = null;
+let _sessionKey: SessionKey | null = null;
+let _sessionKeyExpiry = 0;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- SuiClient is structurally compatible with SealCompatibleClient
 export function getSealClient(suiClient: AnySuiClient): SealClient {
@@ -26,6 +28,75 @@ export function getSealClient(suiClient: AnySuiClient): SealClient {
     });
   }
   return _client;
+}
+
+/**
+ * Get or create a cached session key (10-min TTL).
+ * Only prompts wallet signature if no valid cached key exists.
+ */
+export async function getOrCreateSessionKey(
+  suiClient: AnySuiClient,
+  address: string,
+  signPersonalMessage: (params: { message: Uint8Array }) => Promise<{ signature: string }>,
+): Promise<SessionKey> {
+  if (_sessionKey && Date.now() < _sessionKeyExpiry) return _sessionKey;
+  const sk = await createSessionKey(suiClient, address, signPersonalMessage);
+  _sessionKey = sk;
+  _sessionKeyExpiry = Date.now() + 9 * 60 * 1000; // 9 min (slightly under 10-min TTL)
+  return sk;
+}
+
+/**
+ * Decrypt a listing's encrypted payload using an existing session key (no extra signature).
+ */
+export async function sealDecryptListingWithKey(
+  suiClient: AnySuiClient,
+  sessionKey: SessionKey,
+  listingId: string,
+  receiptId: string,
+): Promise<{ exactCoords: { x: string; y: string; z: string }; description: string }> {
+  const getObj = (id: string) =>
+    (suiClient as { getObject: (opts: { id: string; options: { showContent: boolean } }) => Promise<{ data?: { content?: { dataType: string; fields: Record<string, unknown> } } }> }).getObject({
+      id,
+      options: { showContent: true },
+    });
+
+  // Wait for receipt object to be indexed by fullnode (just created by purchase TX)
+  for (let i = 0; i < 5; i++) {
+    try {
+      await getObj(receiptId);
+      break;
+    } catch {
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+  }
+
+  // Fetch encrypted payload from chain
+  const client = getSealClient(suiClient);
+  const obj = await getObj(listingId);
+  const content = obj.data?.content;
+  if (!content || content.dataType !== "moveObject") throw new Error("Listing not found");
+  const fields = content.fields as Record<string, unknown>;
+  const payloadArr = fields.encrypted_payload as number[];
+  if (!payloadArr || payloadArr.length === 0) throw new Error("No encrypted payload");
+  const encryptedPayload = new Uint8Array(payloadArr);
+
+  const tx = new Transaction();
+  tx.moveCall({
+    target: `${PACKAGE_ID}::intel_market::seal_approve_listing`,
+    arguments: [
+      tx.pure.vector("u8", Array.from(fromHex(EncryptedObject.parse(encryptedPayload).id))),
+      tx.object(receiptId),
+    ],
+  });
+  const txBytes = await tx.build({ client: suiClient, onlyTransactionKind: true });
+
+  const decryptedBytes = await client.decrypt({
+    data: encryptedPayload,
+    sessionKey,
+    txBytes,
+  });
+  return JSON.parse(new TextDecoder().decode(decryptedBytes));
 }
 
 /**
@@ -98,6 +169,16 @@ export async function sealDecryptListing(
   receiptId: string,
 ): Promise<{ exactCoords: { x: string; y: string; z: string }; description: string }> {
   const client = getSealClient(suiClient);
+
+  // Wait for receipt object to be indexed by fullnode
+  for (let i = 0; i < 5; i++) {
+    try {
+      await suiClient.getObject({ id: receiptId, options: { showContent: false } });
+      break;
+    } catch {
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+  }
 
   const tx = new Transaction();
   tx.moveCall({

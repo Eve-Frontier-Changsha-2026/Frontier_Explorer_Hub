@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useCurrentAccount } from "@mysten/dapp-kit";
-import { useIntelListings, usePurchaseIntel, useDecryptListing, useCancelListing } from "@/hooks/use-intel-market";
+import { useCurrentAccount, useSuiClient, useSignPersonalMessage } from "@mysten/dapp-kit";
+import { useIntelListings, usePurchaseIntel, useCancelListing } from "@/hooks/use-intel-market";
+import { getOrCreateSessionKey, sealDecryptListingWithKey } from "@/lib/seal";
 import type { IntelListingV2 } from "@/types";
 import { IntelListingCard } from "./IntelListingCard";
 import { DecryptedIntelView } from "./DecryptedIntelView";
@@ -17,9 +18,10 @@ const SORT_OPTIONS = [
 
 export function IntelListingBrowser({ onBuy }: { onBuy?: (listingId: string) => void }) {
   const account = useCurrentAccount();
+  const client = useSuiClient();
+  const { mutateAsync: signPersonalMessage } = useSignPersonalMessage();
   const { data: listings, isLoading } = useIntelListings();
   const purchaseIntel = usePurchaseIntel();
-  const decryptListing = useDecryptListing();
   const cancelListing = useCancelListing();
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<number | null>(null);
@@ -47,14 +49,17 @@ export function IntelListingBrowser({ onBuy }: { onBuy?: (listingId: string) => 
 
   const handleBuy = async (listingId: string, priceMist: number) => {
     try {
+      if (!account) throw new Error("Wallet not connected");
       setDecryptedData(null);
       setDecryptError(null);
       setActiveListingId(listingId);
-      // 1. Purchase
+      // 1. Pre-create session key (personal message sign — cached for 9 min)
+      const sessionKey = await getOrCreateSessionKey(client, account.address, signPersonalMessage);
+      // 2. Purchase TX (only TX signature needed now)
       const { receiptId } = await purchaseIntel.mutateAsync({ listingId, priceMist });
-      // 2. Auto-decrypt
+      // 3. Auto-decrypt (no extra signature — uses cached session key)
       setIsDecrypting(true);
-      const data = await decryptListing.mutateAsync({ listingId, receiptId });
+      const data = await sealDecryptListingWithKey(client, sessionKey, listingId, receiptId);
       setDecryptedData(data);
     } catch (e) {
       setDecryptError(e instanceof Error ? e.message : "Unknown error");
