@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useIntelListings, usePurchaseIntel, useDecryptListing } from "@/hooks/use-intel-market";
+import { useCurrentAccount } from "@mysten/dapp-kit";
+import { useIntelListings, usePurchaseIntel, useDecryptListing, useCancelListing } from "@/hooks/use-intel-market";
 import type { IntelListingV2 } from "@/types";
 import { IntelListingCard } from "./IntelListingCard";
 import { DecryptedIntelView } from "./DecryptedIntelView";
@@ -15,9 +16,11 @@ const SORT_OPTIONS = [
 ] as const;
 
 export function IntelListingBrowser({ onBuy }: { onBuy?: (listingId: string) => void }) {
+  const account = useCurrentAccount();
   const { data: listings, isLoading } = useIntelListings();
   const purchaseIntel = usePurchaseIntel();
   const decryptListing = useDecryptListing();
+  const cancelListing = useCancelListing();
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<number | null>(null);
   const [sort, setSort] = useState<string>("newest");
@@ -122,15 +125,20 @@ export function IntelListingBrowser({ onBuy }: { onBuy?: (listingId: string) => 
             No listings yet. Be the first to sell intel.
           </div>
         )}
-        {filteredListings.map((listing) => (
-          <IntelListingCard
-            key={listing.id}
-            listing={listing}
-            sellerRating={3.0}
-            sellerTrades={0}
-            onBuy={() => handleBuy(listing.id, listing.priceMist)}
-          />
-        ))}
+        {filteredListings.map((listing) => {
+          const isMine = account?.address === listing.seller;
+          return (
+            <IntelListingCard
+              key={listing.id}
+              listing={listing}
+              sellerRating={3.0}
+              sellerTrades={0}
+              isMine={isMine}
+              onBuy={() => handleBuy(listing.id, listing.priceMist)}
+              onCancel={() => cancelListing.mutate({ listingId: listing.id })}
+            />
+          );
+        })}
       </div>
 
       {activeListingId && (

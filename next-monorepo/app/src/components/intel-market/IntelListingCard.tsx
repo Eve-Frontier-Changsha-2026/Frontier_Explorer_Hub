@@ -21,9 +21,11 @@ interface Props {
   sellerRating: number;
   sellerTrades: number;
   onBuy?: () => void;
+  onCancel?: () => void;
+  isMine?: boolean;
 }
 
-export function IntelListingCard({ listing, sellerRating, sellerTrades, onBuy }: Props) {
+export function IntelListingCard({ listing, sellerRating, sellerTrades, onBuy, onCancel, isMine }: Props) {
   const meta = listing.publicMetadata;
   const typeColor = TYPE_COLORS[meta.intelType] ?? "text-eve-muted";
   const icon = TYPE_ICONS[meta.intelType] ?? "?";
@@ -47,14 +49,24 @@ export function IntelListingCard({ listing, sellerRating, sellerTrades, onBuy }:
           <RatingStars rating={sellerRating} trades={sellerTrades} />
           <CountdownTimer targetMs={meta.expiry} />
         </div>
-        {listing.status === 0 && listing.isSealed && onBuy && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onBuy(); }}
-            className="text-[0.6rem] border border-eve-gold/40 text-eve-gold px-1.5 py-0.5 hover:bg-eve-gold/10"
-          >
-            BUY
-          </button>
-        )}
+        <div className="flex gap-1">
+          {listing.status === 0 && !isMine && onBuy && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onBuy(); }}
+              className="text-[0.6rem] border border-eve-gold/40 text-eve-gold px-1.5 py-0.5 hover:bg-eve-gold/10"
+            >
+              BUY
+            </button>
+          )}
+          {listing.status === 0 && isMine && onCancel && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onCancel(); }}
+              className="text-[0.6rem] border border-eve-danger/40 text-eve-danger px-1.5 py-0.5 hover:bg-eve-danger/10"
+            >
+              CANCEL
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
