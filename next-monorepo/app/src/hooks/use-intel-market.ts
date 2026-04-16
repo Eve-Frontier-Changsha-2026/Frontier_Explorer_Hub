@@ -90,7 +90,14 @@ export function useIntelRequests() {
       });
       if (events.data.length === 0) return [];
 
-      const ids = events.data.map((e) => (e.parsedJson as { request_id: string }).request_id);
+      // Build reward lookup from events (Balance on-chain becomes 0 after payout)
+      const rewardByRequestId = new Map<string, number>();
+      const ids: string[] = [];
+      for (const e of events.data) {
+        const p = e.parsedJson as { request_id: string; reward_mist?: string | number };
+        ids.push(p.request_id);
+        if (p.reward_mist != null) rewardByRequestId.set(p.request_id, Number(p.reward_mist));
+      }
       const objects = await client.multiGetObjects({
         ids,
         options: { showContent: true },
@@ -100,14 +107,16 @@ export function useIntelRequests() {
         .filter((o) => o.data?.content?.dataType === "moveObject")
         .map((o) => {
           const f = (o.data!.content as { fields: Record<string, unknown> }).fields;
+          const id = (f.id as { id: string }).id;
+          const balanceValue = Number(f.reward);
           return {
-            id: (f.id as { id: string }).id,
+            id,
             buyer: f.buyer as string,
             title: new TextDecoder().decode(new Uint8Array(f.title as number[])),
             intelType: Number(f.intel_type),
             regionId: Number(f.region_id),
             description: new TextDecoder().decode(new Uint8Array(f.description as number[])),
-            rewardMist: Number(f.reward),
+            rewardMist: balanceValue > 0 ? balanceValue : (rewardByRequestId.get(id) ?? 0),
             deadline: Number(f.deadline),
             status: Number(f.status),
             firstSubmissionAt: f.first_submission_at ? Number(f.first_submission_at) : null,
@@ -182,12 +191,15 @@ export function useListIntel() {
 
 export function useSetEncryptedPayload() {
   const { signAndExecute, addToast } = useSignExec();
+  const client = useSuiClient();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (params: Parameters<typeof buildSetEncryptedPayload>[1]) => {
       const tx = new Transaction();
       buildSetEncryptedPayload(tx, params);
-      return signAndExecute({ transaction: tx as never });
+      const result = await signAndExecute({ transaction: tx as never });
+      await client.waitForTransaction({ digest: result.digest });
+      return result;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["intel-market"] });
@@ -234,12 +246,15 @@ export function usePurchaseIntel() {
 
 export function useConfirmAndRate() {
   const { signAndExecute, addToast } = useSignExec();
+  const client = useSuiClient();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (params: Parameters<typeof buildConfirmAndRate>[1]) => {
       const tx = new Transaction();
       buildConfirmAndRate(tx, params);
-      return signAndExecute({ transaction: tx as never });
+      const result = await signAndExecute({ transaction: tx as never });
+      await client.waitForTransaction({ digest: result.digest });
+      return result;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["intel-market"] });
@@ -255,12 +270,15 @@ export function useConfirmAndRate() {
 
 export function usePostRequest() {
   const { signAndExecute, addToast } = useSignExec();
+  const client = useSuiClient();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (params: Parameters<typeof buildPostRequest>[1]) => {
       const tx = new Transaction();
       buildPostRequest(tx, params);
-      return signAndExecute({ transaction: tx as never });
+      const result = await signAndExecute({ transaction: tx as never });
+      await client.waitForTransaction({ digest: result.digest });
+      return result;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["intel-market"] });
@@ -301,24 +319,35 @@ export function useFulfillRequest() {
         requestId: params.requestId,
         encryptedPayload,
       });
-      return signAndExecute({ transaction: tx as never });
+      const result = await signAndExecute({ transaction: tx as never });
+      await client.waitForTransaction({ digest: result.digest });
+      return result;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["intel-market"] });
       addToast({ type: "success", message: "Intel submitted and sealed." });
     },
-    onError: (e) => addToast({ type: "error", message: `Fulfill failed: ${e.message}` }),
+    onError: (e) => {
+      const msg = e.message;
+      if (msg.includes("327")) addToast({ type: "error", message: "You have already submitted to this request." });
+      else if (msg.includes("320")) addToast({ type: "error", message: "This request is no longer open." });
+      else if (msg.includes("328")) addToast({ type: "error", message: "Request deadline has passed." });
+      else addToast({ type: "error", message: `Fulfill failed: ${msg}` });
+    },
   });
 }
 
 export function useAcceptAndRate() {
   const { signAndExecute, addToast } = useSignExec();
+  const client = useSuiClient();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (params: Parameters<typeof buildAcceptAndRate>[1]) => {
       const tx = new Transaction();
       buildAcceptAndRate(tx, params);
-      return signAndExecute({ transaction: tx as never });
+      const result = await signAndExecute({ transaction: tx as never });
+      await client.waitForTransaction({ digest: result.digest });
+      return result;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["intel-market"] });
@@ -350,12 +379,15 @@ export function useCancelListing() {
 
 export function useCancelRequest() {
   const { signAndExecute, addToast } = useSignExec();
+  const client = useSuiClient();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (params: Parameters<typeof buildCancelRequest>[1]) => {
       const tx = new Transaction();
       buildCancelRequest(tx, params);
-      return signAndExecute({ transaction: tx as never });
+      const result = await signAndExecute({ transaction: tx as never });
+      await client.waitForTransaction({ digest: result.digest });
+      return result;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["intel-market"] });

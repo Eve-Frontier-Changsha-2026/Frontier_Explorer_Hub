@@ -169,20 +169,29 @@ export function MyActivity() {
       });
       const myEvents = events.data.filter((e) => e.sender === account.address);
       if (myEvents.length === 0) return [];
-      const ids = myEvents.map((e) => (e.parsedJson as { request_id: string }).request_id);
+      // Build reward lookup from events (Balance on-chain becomes 0 after payout)
+      const rewardByRequestId = new Map<string, number>();
+      const ids: string[] = [];
+      for (const e of myEvents) {
+        const p = e.parsedJson as { request_id: string; reward_mist?: string | number };
+        ids.push(p.request_id);
+        if (p.reward_mist != null) rewardByRequestId.set(p.request_id, Number(p.reward_mist));
+      }
       const objects = await client.multiGetObjects({ ids, options: { showContent: true } });
       return objects
         .filter((o) => o.data?.content?.dataType === "moveObject")
         .map((o) => {
           const f = (o.data!.content as { fields: Record<string, unknown> }).fields;
+          const id = (f.id as { id: string }).id;
+          const balanceValue = Number(f.reward);
           return {
-            id: (f.id as { id: string }).id,
+            id,
             buyer: f.buyer as string,
             title: new TextDecoder().decode(new Uint8Array(f.title as number[])),
             intelType: Number(f.intel_type),
             regionId: Number(f.region_id),
             description: new TextDecoder().decode(new Uint8Array(f.description as number[])),
-            rewardMist: Number(f.reward),
+            rewardMist: balanceValue > 0 ? balanceValue : (rewardByRequestId.get(id) ?? 0),
             deadline: Number(f.deadline),
             status: Number(f.status),
             firstSubmissionAt: f.first_submission_at ? Number(f.first_submission_at) : null,
@@ -220,20 +229,35 @@ export function MyActivity() {
       }
       const entries = Array.from(seen.values());
       const ids = entries.map((e) => e.requestId);
+
+      // Fetch original reward from RequestCreatedEvent (Balance on-chain becomes 0 after payout)
+      const reqCreatedEvents = await client.queryEvents({
+        query: { MoveEventType: `${PACKAGE_ID}::intel_market::RequestCreatedEvent` },
+        order: "descending",
+        limit: 50,
+      });
+      const rewardByRequestId = new Map<string, number>();
+      for (const e of reqCreatedEvents.data) {
+        const p = e.parsedJson as { request_id: string; reward_mist?: string | number };
+        if (p.reward_mist != null) rewardByRequestId.set(p.request_id, Number(p.reward_mist));
+      }
+
       const objects = await client.multiGetObjects({ ids, options: { showContent: true } });
       return entries.map((entry, i) => {
         const o = objects[i];
         let request: IntelRequestV2 | null = null;
         if (o?.data?.content?.dataType === "moveObject") {
           const f = (o.data.content as { fields: Record<string, unknown> }).fields;
+          const id = (f.id as { id: string }).id;
+          const balanceValue = Number(f.reward);
           request = {
-            id: (f.id as { id: string }).id,
+            id,
             buyer: f.buyer as string,
             title: new TextDecoder().decode(new Uint8Array(f.title as number[])),
             intelType: Number(f.intel_type),
             regionId: Number(f.region_id),
             description: new TextDecoder().decode(new Uint8Array(f.description as number[])),
-            rewardMist: Number(f.reward),
+            rewardMist: balanceValue > 0 ? balanceValue : (rewardByRequestId.get(id) ?? 0),
             deadline: Number(f.deadline),
             status: Number(f.status),
             firstSubmissionAt: f.first_submission_at ? Number(f.first_submission_at) : null,
