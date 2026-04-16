@@ -184,11 +184,11 @@ const ROADMAP = [
 const TEAM = [
   {
     name: "Ramon",
-    roles: ["系統規劃", "後端", "合約", "系統整合"],
+    roles: ["System Architecture", "Backend", "Smart Contract", "Integration"],
   },
   {
     name: "Tommy",
-    roles: ["UI 設計與實作", "遊戲分析", "遊戲測試", "功能再平衡"],
+    roles: ["UI Design & Dev", "Game Analysis", "Game Testing", "Feature Rebalancing"],
   },
 ];
 
